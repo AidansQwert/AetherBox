@@ -202,6 +202,7 @@ void cleanup_container_resources(struct ds_config *cfg, pid_t pid,
     ds_x11_daemon_stop(cfg);
     ds_virgl_daemon_stop(cfg);
     ds_pulse_daemon_stop(cfg);
+    ds_anland_daemon_stop(cfg);
     if (count_running_containers(NULL, 0) == 0) {
       android_optimizations(0);
     }
@@ -513,6 +514,14 @@ int start_rootfs(struct ds_config *cfg) {
 
   if (is_android() && cfg->pulseaudio) {
     ds_pulse_daemon_start(cfg);
+  }
+
+  /* anland display daemon: generate the per-container host socket and start the
+   * broker before fork so the socket exists when bind-mounted post-pivot. The
+   * generated cfg->anland_sock is recorded in the Pids dir (not
+   * container.config) by ds_anland_daemon_start. */
+  if (is_android() && cfg->anland) {
+    ds_anland_daemon_start(cfg);
   }
 
   /* 3. Early pre-flight for volatile mode (before any host changes) */
@@ -1531,6 +1540,8 @@ int show_info(struct ds_config *cfg, int trust_cfg_pid) {
     safe_strncpy(st.name, cfg->container_name, sizeof(st.name));
     st.pid = pid;
     safe_strncpy(st.hostname, cfg->hostname, sizeof(st.hostname));
+    ds_anland_load_sock(cfg);
+    safe_strncpy(st.anland_sock, cfg->anland_sock, sizeof(st.anland_sock));
     long ram_total = ds_collect_status(&st, 1);
 
     int first = 1;
@@ -1599,6 +1610,7 @@ int show_info(struct ds_config *cfg, int trust_cfg_pid) {
       if (cfg->virgl_extra_flags)
         ds_json_str("virgl_flags", cfg->virgl_extra_flags, &first);
       ds_json_int("pulseaudio", cfg->pulseaudio, &first);
+      ds_json_int("anland", cfg->anland, &first);
     }
 
     if (access("/sys/fs/selinux/enforce", R_OK) == 0)
@@ -1787,6 +1799,12 @@ int show_info(struct ds_config *cfg, int trust_cfg_pid) {
     /* 9. PulseAudio */
     if (is_android() && cfg->pulseaudio) {
       printf("  PulseAudio: enabled\n");
+      feat_count++;
+    }
+
+    /* 9b. Anland */
+    if (is_android() && cfg->anland) {
+      printf("  Anland: enabled\n");
       feat_count++;
     }
 
