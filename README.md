@@ -2,7 +2,9 @@ English | [简体中文](./Documentation/zh-CN/README.md)
 
 ---
 
-[![Latest release](https://img.shields.io/github/v/release/ravindu644/Droidspaces-OSS?label=Latest%20Release&style=for-the-badge)](https://github.com/ravindu644/Droidspaces-OSS/releases/latest)
+[![Latest release](https://img.shields.io/github/v/release/AidansQwert/AetherBox?label=AetherBox%20Release&style=for-the-badge)](https://github.com/AidansQwert/AetherBox/releases/latest)
+[![Based on Droidspaces](https://img.shields.io/badge/Based%20on-Droidspaces-0A9396?style=for-the-badge)](https://github.com/ravindu644/Droidspaces-OSS)
+[![Upstream](https://img.shields.io/badge/Upstream-ravindu644-111111?style=for-the-badge&logo=github)](https://github.com/ravindu644/Droidspaces-OSS)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](./LICENSE)
 [![Telegram channel](https://img.shields.io/badge/Telegram-Channel-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/Droidspaces)
 [![Android support](https://img.shields.io/badge/-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)](#a-android-devices)
@@ -11,22 +13,35 @@ English | [简体中文](./Documentation/zh-CN/README.md)
 
 ---
 
-# Droidspaces
+# AetherBox
 
-**Droidspaces** is a lightweight, portable Linux containerization tool that lets you run full Linux environments on top of Android, Linux, or even in **minimal environments like Android recovery/Ramdisks**, with complete init system support including **systemd**, **OpenRC**, and other init systems (runit, s6, etc.).
+**AetherBox** is a community fork of [Droidspaces](https://github.com/ravindu644/Droidspaces-OSS) — a lightweight, portable Linux containerization tool that lets you run full Linux environments on top of Android, Linux, or even in **minimal environments like Android recovery/Ramdisks**, with complete init system support including **systemd**, **OpenRC**, and other init systems (runit, s6, etc.).
 
-What makes Droidspaces unique is its **zero-dependency, native execution** on both Android and Linux. It's statically compiled against musl libc. If your device runs a Linux kernel, Droidspaces runs on it. No Termux, no middlemen, no setup overhead.
+This fork keeps the same zero-dependency native runtime and focuses on Android app UX: a redesigned home, Rootfs Repository catalogs, and customizable themes (presets + build-your-own palette).
+
+> [!NOTE]
+>
+> ### Source & credits
+>
+> | | |
+> |---|---|
+> | **Base / upstream (creator)** | [Droidspaces](https://github.com/ravindu644/Droidspaces-OSS) by **[ravindu644](https://github.com/ravindu644)** — original author & maintainer of the runtime and project |
+> | **This fork** | [AetherBox](https://github.com/AidansQwert/AetherBox) by **[AidansQwert](https://github.com/AidansQwert)** — third-party developer (Android UI, branding, Rootfs Repository, themes, releases) |
+>
+> AetherBox is **based on** Droidspaces. Always credit the upstream creator for the core project.
+
+What makes the runtime unique is its **zero-dependency, native execution** on both Android and Linux. It's statically compiled against musl libc. If your device runs a Linux kernel, it runs on it. No Termux, no middlemen, no setup overhead.
 
 - **Tiny footprint:** under 400KB per platform
 - **Truly native:** runs directly on Android and Linux from the same binary
 - **Wide architecture support:** `aarch64`, `armhf`, `x86_64`, `x86`, and `riscv64` as a single static binary
-- **Beautiful Android app:** manage unlimited containers and do everything the CLI can, all from a clean, intuitive GUI
+- **Modern Android app (AetherBox):** command-center home, curated **Rootfs Repository**, System/Light/Dark modes, accent palettes, and a custom theme builder
 
-**Android** + **Linux Namespaces** = **Droidspaces**. Since Android is built on the Linux kernel, Droidspaces works seamlessly on Linux Desktop too. Both platforms are equally supported and maintained.
+**Android** + **Linux Namespaces** = containers that feel like a lightweight VM with native performance. Since Android is built on the Linux kernel, the same binary works on Linux Desktop too.
 
 > [!TIP]
 >
-> Check out [Community-supported Android devices](./Documentation/community-supported-devices.md) for a growing list of phones known to run Droidspaces.
+> Check out [Community-supported Android devices](./Documentation/community-supported-devices.md) for a growing list of phones known to run Droidspaces / AetherBox.
 
 <details>
 <summary><b>View Project's Screenshots (Linux & Android)</b></summary>
@@ -130,8 +145,9 @@ What makes Droidspaces unique is its **zero-dependency, native execution** on bo
 
 ### Quick Navigation
 
-- [What is Droidspaces?](#what-is-droidspaces)
+- [What is AetherBox / Droidspaces?](#what-is-droidspaces)
 - [Features](#features)
+- [Android app (AetherBox)](#android-app-aetherbox)
 - [Droidspaces vs The Alternatives](#droidspaces-vs-the-alternatives)
 - [Requirements](#requirements)
     - [Android](#a-android-devices)
@@ -196,6 +212,21 @@ The entire runtime is a **single static binary** under 400KB, compiled against m
 | **Cgroup Isolation (v1/v2)** | Per-container cgroup hierarchies (`/sys/fs/cgroup/droidspaces/<name>`) with full systemd compatibility. Supports both legacy v1 and modern v2 hierarchies. |
 | **Adaptive Security** | Kernel-aware BPF filters resolve FBE keyring conflicts automatically on legacy kernels. Droidspaces grants full namespace freedom, enabling features like **nested containers/Docker** natively on all kernels. |
 | **Privileged Mode** | Gain full access with the `--privileged` flag! Use with caution: do not report bugs when using this flag as it relaxes several security barriers for features like Flatpak/Bwrap/K3S. |
+
+<a id="android-app-aetherbox"></a>
+
+### Android app (AetherBox)
+
+On top of the shared runtime, this fork ships Android UI work aimed at day-to-day use:
+
+| Area | What’s new |
+|------|------------|
+| **Home** | Command-center layout (brand masthead, status, live space counts) instead of a generic card stack |
+| **Rootfs Repository** | Featured curated catalogs on Home + full sheet browser (official / LXC / community feeds, favorites, search) |
+| **Appearance** | System / Light / Dark chips, accent palettes, and a **Create your own** theme (three hue sliders → full Material scheme) |
+| **About** | Upstream maintainer credited; **AidansQwert** listed as third-party developer; source points at this fork |
+
+APK / release artifacts: [AidansQwert/AetherBox Releases](https://github.com/AidansQwert/AetherBox/releases/latest).
 
 ---
 
@@ -310,7 +341,7 @@ See: [Modern GKI Kernel Configuration](Documentation/Kernel-Configuration.md#con
 
 Most modern Linux desktop distributions already include all the requirements needed by Droidspaces by default. **No additional configuration is needed.**
 
-Just download the tarball from the [GitHub Releases](https://github.com/ravindu644/Droidspaces-OSS/releases/latest), extract it, and use the binary for your CPU architecture.
+Just download the tarball from the [GitHub Releases](https://github.com/AidansQwert/AetherBox/releases/latest) (or upstream [Droidspaces-OSS](https://github.com/ravindu644/Droidspaces-OSS/releases/latest)), extract it, and use the binary for your CPU architecture.
 
 You can verify your system meets all requirements by running:
 
@@ -399,9 +430,9 @@ For GPU acceleration methods, sound setup, DE auto-boot internals, and Linux des
 
 ## Contributing
 
-Contributions are welcome - feel free to open an issue or pull request on the [GitHub repository](https://github.com/ravindu644/Droidspaces-OSS).
+Contributions are welcome — feel free to open an issue or pull request on **this fork**: [AidansQwert/AetherBox](https://github.com/AidansQwert/AetherBox).
 
-For questions or support, join the [Telegram channel](http://t.me/Droidspaces).
+For upstream runtime discussion and the wider community, see [ravindu644/Droidspaces-OSS](https://github.com/ravindu644/Droidspaces-OSS) and the [Telegram channel](http://t.me/Droidspaces).
 
 To contribute translations for the Android app, visit the Weblate project:
 
@@ -415,7 +446,17 @@ To contribute translations for the Android app, visit the Weblate project:
 
 ## Credits & Acknowledgments
 
-Droidspaces is built upon the incredible work of the open-source community. Special thanks to these projects for their inspiration and contributions:
+### Creator of the base project
+
+**AetherBox is based on [Droidspaces](https://github.com/ravindu644/Droidspaces-OSS).**
+
+*   **Base creator / upstream maintainer:** **[ravindu644](https://github.com/ravindu644)** — author of Droidspaces ([Droidspaces-OSS](https://github.com/ravindu644/Droidspaces-OSS)). All core runtime, CLI, and original Android app foundation come from this project.
+*   **Third-party fork developer:** **[AidansQwert](https://github.com/AidansQwert)** — AetherBox ([AidansQwert/AetherBox](https://github.com/AidansQwert/AetherBox)): Android UI overhaul, Rootfs Repository, custom themes, branding, and fork releases.
+*   Everyone listed in the app’s **Contributors** section and upstream commit history.
+
+### Projects
+
+AetherBox / Droidspaces is built upon the incredible work of the open-source community. Special thanks to these projects for their inspiration and contributions:
 
 *   **[LXC](https://github.com/lxc/lxc)** - For the core architectural vision and inspiration for modern Linux containerization.
 *   ~~**[Brutal-Busybox](https://github.com/feravolt/Brutal_busybox)** - For the statically-linked BusyBox binaries used in the Android userspace app to perform certain operations.~~
@@ -429,8 +470,8 @@ Droidspaces is built upon the incredible work of the open-source community. Spec
 
 ## License
 
-Droidspaces is licensed under the [GNU General Public License v3.0](./LICENSE).
+AetherBox (this fork) and upstream Droidspaces are licensed under the [GNU General Public License v3.0](./LICENSE).
 
-Copyright (C) 2026 [ravindu644](https://github.com/ravindu644) and contributors.
+Copyright (C) 2026 [ravindu644](https://github.com/ravindu644), [AidansQwert](https://github.com/AidansQwert), and contributors.
 
 ---
