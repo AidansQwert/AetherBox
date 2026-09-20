@@ -109,7 +109,9 @@ jobs:
         APK_NAME="AetherBox-universal-${TAG}-${COMMIT_HASH}.apk"
         TAR_NAME=$(ls droidspaces-v*-*.tar.gz)
         mkdir -p dist
-        mv Android/app/build/outputs/apk/release/app-release.apk dist/${APK_NAME}
+        # archivesBaseName renames the APK (e.g. AetherBox-<version>-release.apk)
+        APK_SRC=$(ls Android/app/build/outputs/apk/release/*-release.apk | head -1)
+        mv "${APK_SRC}" dist/${APK_NAME}
         mv ${TAR_NAME} dist/
         mv droidspaces_*.deb dist/
         echo "APK_FILE=dist/${APK_NAME}" >> $GITHUB_ENV
