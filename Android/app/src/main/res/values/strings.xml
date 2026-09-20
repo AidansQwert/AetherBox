@@ -133,17 +133,9 @@
     <string name="home_spaces_live">%1$d spaces · %2$d live</string>
     <string name="home_brand_kicker">AETHERBOX</string>
     <string name="home_status_strip">Backend</string>
-    <string name="home_orbit_title">Quick orbit</string>
-    <string name="home_orbit_subtitle">Jump into spaces, live sessions, or images</string>
-    <string name="home_orbit_spaces">Spaces</string>
-    <string name="home_orbit_live">Live</string>
-    <string name="home_orbit_images">Images</string>
     <string name="home_live_pulse">Live pulse</string>
     <string name="home_live_idle">Idle</string>
     <string name="home_live_active">%1$d running</string>
-    <string name="home_feat_holo">Holo Core ready</string>
-    <string name="home_feat_holo_desc">ARM SteamOS-class rootfs in the catalog</string>
-    <string name="home_layout_tagline">Spaces · live · catalog — one plane</string>
     <string name="daemon_mode">Daemon Mode</string>
     <string name="daemon_mode_description">Run AetherBox as a persistent system-level daemon to bypass seccomp blocks from Magisk/APatch, GrapheneOS, etc. This enables high-privilege operations by fetching and running commands from userspace (Reboot required).</string>
     <string name="symlink_integration">Integrate AetherBox to the system path</string>

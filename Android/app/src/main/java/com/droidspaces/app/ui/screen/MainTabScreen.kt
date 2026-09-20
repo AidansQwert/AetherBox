@@ -17,8 +17,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -495,7 +493,7 @@ private fun HomeTabContent(
 
     var stage by remember { mutableStateOf(0) }
     LaunchedEffect(Unit) {
-        for (i in 1..6) {
+        for (i in 1..5) {
             delay(55)
             stage = i
         }
@@ -507,16 +505,13 @@ private fun HomeTabContent(
     }
 
     val (mastA, mastY) = enter(1)
-    val (orbitA, orbitY) = enter(2)
-    val (pulseA, pulseY) = enter(3)
-    val (gridA, gridY) = enter(4)
-    val (repoA, repoY) = enter(5)
-    val (restA, restY) = enter(6)
+    val (pulseA, pulseY) = enter(2)
+    val (gridA, gridY) = enter(3)
+    val (repoA, repoY) = enter(4)
+    val (restA, restY) = enter(5)
 
     val mastAlpha by animateFloatAsState(mastA, AnimationUtils.fadeInSpec(), label = "mastA")
     val mastOffset by animateFloatAsState(mastY, AnimationUtils.slowSpec(), label = "mastY")
-    val orbitAlpha by animateFloatAsState(orbitA, AnimationUtils.fadeInSpec(), label = "orbitA")
-    val orbitOffset by animateFloatAsState(orbitY, AnimationUtils.slowSpec(), label = "orbitY")
     val pulseAlpha by animateFloatAsState(pulseA, AnimationUtils.fadeInSpec(), label = "pulseA")
     val pulseOffset by animateFloatAsState(pulseY, AnimationUtils.slowSpec(), label = "pulseY")
     val gridAlpha by animateFloatAsState(gridA, AnimationUtils.fadeInSpec(), label = "gridA")
@@ -556,7 +551,7 @@ private fun HomeTabContent(
                 .padding(bottom = 120.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            // Brand plane — leaner, with feature callout
+            // Brand plane
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -569,7 +564,7 @@ private fun HomeTabContent(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(172.dp)
+                        .height(148.dp)
                         .background(
                             Brush.verticalGradient(
                                 listOf(
@@ -606,98 +601,11 @@ private fun HomeTabContent(
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = context.getString(R.string.home_layout_tagline),
+                        text = context.getString(R.string.home_command_center),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.88f)
                     )
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.32f)),
-                        modifier = Modifier.padding(top = 4.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Bolt,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Column {
-                                Text(
-                                    text = context.getString(R.string.home_feat_holo),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontFamily = SpaceGrotesk,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.secondary
-                                )
-                                Text(
-                                    text = context.getString(R.string.home_feat_holo_desc),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Quick orbit — new layout element
-            if (isRootAvailable) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .graphicsLayer {
-                            alpha = orbitAlpha
-                            translationY = orbitOffset
-                        }
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = context.getString(R.string.home_orbit_title),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = context.getString(R.string.home_orbit_subtitle),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        HomeOrbitAction(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Default.Layers,
-                            label = context.getString(R.string.home_orbit_spaces),
-                            accent = MaterialTheme.colorScheme.primary,
-                            onClick = onNavigateToContainers
-                        )
-                        HomeOrbitAction(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Default.RocketLaunch,
-                            label = context.getString(R.string.home_orbit_live),
-                            accent = MaterialTheme.colorScheme.tertiary,
-                            onClick = onNavigateToControlPanel
-                        )
-                        HomeOrbitAction(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Default.CloudDownload,
-                            label = context.getString(R.string.home_orbit_images),
-                            accent = MaterialTheme.colorScheme.secondary,
-                            onClick = onNavigateToRootfsRepo
-                        )
-                    }
                 }
             }
 
@@ -1004,54 +912,6 @@ private fun HomeTabContent(
                 showThemeEditor = false
             }
         )
-    }
-}
-
-@Composable
-private fun HomeOrbitAction(
-    icon: ImageVector,
-    label: String,
-    accent: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier.height(96.dp),
-        shape = RoundedCornerShape(22.dp),
-        color = Color.Transparent,
-        border = BorderStroke(1.dp, accent.copy(alpha = 0.38f))
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(accent.copy(alpha = 0.08f))
-                .padding(12.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
-            horizontalAlignment = Alignment.Start
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = accent.copy(alpha = 0.16f),
-                modifier = Modifier.size(36.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = accent,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelLarge,
-                fontFamily = SpaceGrotesk,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
     }
 }
 
