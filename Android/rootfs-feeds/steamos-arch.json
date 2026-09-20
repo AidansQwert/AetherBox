@@ -1,0 +1,41 @@
+[
+  {
+    "author": "AetherBox / linuxcontainers.org",
+    "name": "SteamOS base (Arch) - aarch64",
+    "distro": "SteamOS",
+    "description": "Not an official Valve image. SteamOS 3 (Holo) is Arch-based — this is the Arch Linux LXC rootfs for phones/ARM devices. Install Steam/Proton yourself; gaming on Android GPU is limited.",
+    "architecture": "aarch64",
+    "file": "SteamOS-Arch-base-aarch64",
+    "download_url": "https://images.linuxcontainers.org/images/archlinux/current/arm64/default/20260920_04%3A18/rootfs.tar.xz",
+    "sha256": "946ec7add5cff667e04c042fa55a821ad3c87f4b9081f4a1e9f97ceb69d5408c",
+    "size_bytes": 180267324,
+    "version": "arch-current",
+    "build_date": "20260920"
+  },
+  {
+    "author": "AetherBox / linuxcontainers.org",
+    "name": "SteamOS base (Arch) - x86_64",
+    "distro": "SteamOS",
+    "description": "Not an official Valve image. Arch Linux LXC rootfs (SteamOS 3 base) for x86_64 / amd64 hosts. Closer to Steam Deck CPU arch than ARM phones.",
+    "architecture": "x86_64",
+    "file": "SteamOS-Arch-base-x86_64",
+    "download_url": "https://images.linuxcontainers.org/images/archlinux/current/amd64/default/20260920_05%3A03/rootfs.tar.xz",
+    "sha256": "6f1227919b13beebaf2c049e24580dc0654854596e4689ead28c10672587bf15",
+    "size_bytes": 185561436,
+    "version": "arch-current",
+    "build_date": "20260920"
+  },
+  {
+    "author": "linuxcontainers.org",
+    "name": "Arch Linux current - LXC Base",
+    "distro": "Arch",
+    "description": "Plain Arch Linux LXC rootfs (same upstream as the SteamOS-base entries). Use this if you want stock Arch without the SteamOS label.",
+    "architecture": "aarch64",
+    "file": "Arch-Linux-current-lxc",
+    "download_url": "https://images.linuxcontainers.org/images/archlinux/current/arm64/default/20260920_04%3A18/rootfs.tar.xz",
+    "sha256": "946ec7add5cff667e04c042fa55a821ad3c87f4b9081f4a1e9f97ceb69d5408c",
+    "size_bytes": 180267324,
+    "version": "current",
+    "build_date": "20260920"
+  }
+]

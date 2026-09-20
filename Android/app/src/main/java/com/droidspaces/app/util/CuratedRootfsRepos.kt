@@ -41,6 +41,14 @@ object CuratedRootfsRepos {
             category = "lxc"
         ),
         CuratedRootfsRepo(
+            id = "steamos-arch",
+            name = "SteamOS (Arch base)",
+            description = "SteamOS 3 is Arch-based — Arch LXC rootfs for aarch64/x86_64 (not Valve official)",
+            author = "AetherBox",
+            url = "https://raw.githubusercontent.com/AidansQwert/AetherBox/main/Android/rootfs-feeds/steamos-arch.json",
+            category = "community"
+        ),
+        CuratedRootfsRepo(
             id = "seriatvt-builder",
             name = "seriaTvT Rootfs Builder",
             description = "Community fork of the official Droidspaces rootfs builder",
@@ -70,6 +78,7 @@ object CuratedRootfsRepos {
     val githubQuickFills: List<Pair<String, String>> = listOf(
         "Droidspaces/Droidspaces-rootfs-builder" to "Official",
         "Droidspaces/linuxcontainers-mirror" to "LXC mirror",
+        "AidansQwert/AetherBox@main:Android/rootfs-feeds/steamos-arch.json" to "SteamOS/Arch",
         "seriaTvT/Droidspaces-rootfs-builder" to "seriaTvT",
         "shimabde/Droidspaces-rootfs-builder" to "shimabde",
         "xys20071111/Droidspaces-openwrt-rootfs-builder" to "OpenWrt"
