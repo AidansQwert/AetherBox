@@ -199,7 +199,7 @@ jobs:
         if [ -z "$PREV_TAG" ]; then
           CHANGELOG=$(git log --oneline --pretty=format:"* %s (%h)")
         else
-          CHANGELOG=$(git log${PREV_TAG}..HEAD --oneline --pretty=format:"* %s (%h)")
+          CHANGELOG=$(git log "${PREV_TAG}..HEAD" --oneline --pretty=format:"* %s (%h)")
         fi
 
         {
