@@ -94,6 +94,7 @@ fun RootfsRepoSheet(
             var searchQuery by remember { mutableStateOf("") }
             var distroFilter by remember { mutableStateOf<String?>(null) }
             var favoritesOnly by remember { mutableStateOf(false) }
+            var recentOnly by remember { mutableStateOf(false) }
             var favoriteTick by remember { mutableStateOf(0) }
 
             // Derive stable display state - avoids AnimatedContent recomposition that collapses the sheet
@@ -106,15 +107,20 @@ fun RootfsRepoSheet(
             }
             val showError = state is RepoUiState.Error
             val favoriteUrls = remember(favoriteTick, displayAssets) { vm.favoriteUrls() }
+            val recentUrls = remember(favoriteTick, displayAssets, vm.downloadStates) { vm.recentUrls() }
 
             val distroOptions = remember(displayAssets) {
                 displayAssets.map { it.displayDistro }.distinct().sorted()
             }
 
-            val filteredAssets = remember(displayAssets, searchQuery, distroFilter, favoritesOnly, favoriteUrls) {
+            val filteredAssets = remember(
+                displayAssets, searchQuery, distroFilter, favoritesOnly, recentOnly, favoriteUrls, recentUrls
+            ) {
+                val recentIndex = recentUrls.withIndex().associate { it.value to it.index }
                 displayAssets.asSequence()
                     .filter { asset ->
                         if (favoritesOnly && asset.downloadUrl !in favoriteUrls) return@filter false
+                        if (recentOnly && asset.downloadUrl !in recentIndex) return@filter false
                         if (distroFilter != null && !asset.displayDistro.equals(distroFilter, ignoreCase = true)) {
                             return@filter false
                         }
@@ -126,7 +132,11 @@ fun RootfsRepoSheet(
                             asset.displayDistro.contains(searchQuery, ignoreCase = true) ||
                             asset.version.contains(searchQuery, ignoreCase = true)
                     }
-                    .sortedByDescending { it.downloadUrl in favoriteUrls }
+                    .sortedWith(
+                        compareByDescending<RootfsAsset> { it.downloadUrl in favoriteUrls }
+                            .thenBy { recentIndex[it.downloadUrl] ?: Int.MAX_VALUE }
+                            .thenBy { it.name.lowercase() }
+                    )
                     .toList()
             }
 
@@ -180,8 +190,16 @@ fun RootfsRepoSheet(
                     distros = distroOptions,
                     selected = distroFilter,
                     favoritesOnly = favoritesOnly,
+                    recentOnly = recentOnly,
                     onSelectDistro = { distroFilter = it },
-                    onToggleFavorites = { favoritesOnly = !favoritesOnly }
+                    onToggleFavorites = {
+                        favoritesOnly = !favoritesOnly
+                        if (favoritesOnly) recentOnly = false
+                    },
+                    onToggleRecent = {
+                        recentOnly = !recentOnly
+                        if (recentOnly) favoritesOnly = false
+                    }
                 )
             }
 
@@ -217,7 +235,7 @@ fun RootfsRepoSheet(
                         } else {
                             RepoListContent(
                                 assets         = filteredAssets,
-                                isFiltered     = searchQuery.isNotBlank() || distroFilter != null || favoritesOnly,
+                                isFiltered     = searchQuery.isNotBlank() || distroFilter != null || favoritesOnly || recentOnly,
                                 downloadStates = vm.downloadStates,
                                 favoriteUrls   = favoriteUrls,
                                 onDownload     = { vm.startDownload(it) },
@@ -316,8 +334,10 @@ private fun DistroFilterRow(
     distros: List<String>,
     selected: String?,
     favoritesOnly: Boolean,
+    recentOnly: Boolean,
     onSelectDistro: (String?) -> Unit,
-    onToggleFavorites: () -> Unit
+    onToggleFavorites: () -> Unit,
+    onToggleRecent: () -> Unit
 ) {
     val context = LocalContext.current
     LazyRow(
@@ -327,16 +347,17 @@ private fun DistroFilterRow(
     ) {
         item {
             FilterChip(
-                selected = selected == null && !favoritesOnly,
+                selected = selected == null && !favoritesOnly && !recentOnly,
                 onClick = {
                     onSelectDistro(null)
                     if (favoritesOnly) onToggleFavorites()
+                    if (recentOnly) onToggleRecent()
                 },
                 label = { Text(context.getString(R.string.repo_filter_all)) },
                 shape = PillShape,
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true,
-                    selected = selected == null && !favoritesOnly,
+                    selected = selected == null && !favoritesOnly && !recentOnly,
                     borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
                     selectedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
                 )
@@ -363,18 +384,40 @@ private fun DistroFilterRow(
                 )
             )
         }
+        item {
+            FilterChip(
+                selected = recentOnly,
+                onClick = onToggleRecent,
+                label = { Text(context.getString(R.string.repo_filter_recent)) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                },
+                shape = PillShape,
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = recentOnly,
+                    borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                    selectedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                )
+            )
+        }
         items(distros, key = { it }) { distro ->
             FilterChip(
-                selected = selected.equals(distro, ignoreCase = true) && !favoritesOnly,
+                selected = selected.equals(distro, ignoreCase = true) && !favoritesOnly && !recentOnly,
                 onClick = {
                     onSelectDistro(if (selected.equals(distro, ignoreCase = true)) null else distro)
                     if (favoritesOnly) onToggleFavorites()
+                    if (recentOnly) onToggleRecent()
                 },
                 label = { Text(distro) },
                 shape = PillShape,
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true,
-                    selected = selected.equals(distro, ignoreCase = true) && !favoritesOnly,
+                    selected = selected.equals(distro, ignoreCase = true) && !favoritesOnly && !recentOnly,
                     borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
                     selectedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
                 )

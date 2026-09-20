@@ -4,6 +4,12 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.ui.graphics.Color
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -21,6 +27,10 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -37,8 +47,10 @@ import com.droidspaces.app.util.SystemInfoManager
 import com.droidspaces.app.ui.viewmodel.AppStateViewModel
 import com.droidspaces.app.ui.viewmodel.ContainerViewModel
 import com.droidspaces.app.ui.component.HelpCard
+import com.droidspaces.app.util.AnimationUtils
 import com.droidspaces.app.util.AppUpdateInfo
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.ui.unit.sp
@@ -304,6 +316,7 @@ fun MainTabScreen(
         // Reserved as bottom space for centered empty states so they sit in the
         // visible region above the bar instead of behind it.
         var bottomBarHeight by remember { mutableStateOf(0.dp) }
+        var openRepoSheetRequest by remember { mutableStateOf(false) }
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             HorizontalPager(
                 state = pagerState,
@@ -327,6 +340,12 @@ fun MainTabScreen(
                                     pagerState.scrollToPage(tabs.indexOf(TabItem.ControlPanel))
                                 }
                             },
+                            onNavigateToRootfsRepo = {
+                                openRepoSheetRequest = true
+                                scope.launch {
+                                    pagerState.scrollToPage(tabs.indexOf(TabItem.Containers))
+                                }
+                            },
                             containerCount = containerCount,
                             runningCount = runningCount,
                             onRefresh = { performRefresh(TabItem.Home) }
@@ -344,7 +363,9 @@ fun MainTabScreen(
                             onRefresh = { performRefresh(TabItem.Containers) },
                             expandedContainerName = expandedContainerName,
                             onExpandedContainerNameChange = { expandedContainerName = it },
-                            emptyStateBottomInset = bottomBarHeight
+                            emptyStateBottomInset = bottomBarHeight,
+                            openRepoSheet = openRepoSheetRequest,
+                            onOpenRepoSheetConsumed = { openRepoSheetRequest = false }
                         )
                     }
 
@@ -392,18 +413,74 @@ private fun HomeTabContent(
     onNavigateToInstallation: () -> Unit,
     onNavigateToContainers: () -> Unit,
     onNavigateToControlPanel: () -> Unit,
+    onNavigateToRootfsRepo: () -> Unit,
     containerCount: Int,
     runningCount: Int,
     onRefresh: suspend () -> Unit
 ) {
     val context = LocalContext.current
-    // Track refresh trigger for SystemInfoCard
     var refreshTrigger by remember { mutableStateOf(0) }
-
-    // Taps on a healthy status card do nothing useful, so count them for the
-    // easter egg. Reset whenever the backend state changes so a tap that was
-    // meant for the installer never lands on YouTube instead.
     var idleTaps by remember(droidspacesStatus) { mutableStateOf(0) }
+
+    var heroVisible by remember { mutableStateOf(false) }
+    var metricsVisible by remember { mutableStateOf(false) }
+    var actionsVisible by remember { mutableStateOf(false) }
+    var restVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        delay(30); heroVisible = true
+        delay(80); metricsVisible = true
+        delay(70); actionsVisible = true
+        delay(70); restVisible = true
+    }
+
+    val heroAlpha by animateFloatAsState(
+        if (heroVisible) 1f else 0f,
+        AnimationUtils.fadeInSpec(),
+        label = "heroA"
+    )
+    val heroY by animateFloatAsState(
+        if (heroVisible) 0f else 18f,
+        AnimationUtils.mediumSpec(),
+        label = "heroY"
+    )
+    val metricsAlpha by animateFloatAsState(
+        if (metricsVisible) 1f else 0f,
+        AnimationUtils.fadeInSpec(),
+        label = "metricsA"
+    )
+    val metricsY by animateFloatAsState(
+        if (metricsVisible) 0f else 16f,
+        AnimationUtils.mediumSpec(),
+        label = "metricsY"
+    )
+    val actionsAlpha by animateFloatAsState(
+        if (actionsVisible) 1f else 0f,
+        AnimationUtils.fadeInSpec(),
+        label = "actionsA"
+    )
+    val restAlpha by animateFloatAsState(
+        if (restVisible) 1f else 0f,
+        AnimationUtils.fadeInSpec(),
+        label = "restA"
+    )
+
+    val animatedContainers by animateIntAsState(
+        targetValue = containerCount,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "containers"
+    )
+    val animatedRunning by animateIntAsState(
+        targetValue = runningCount,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "running"
+    )
 
     PullToRefreshWrapper(
         onRefresh = {
@@ -416,140 +493,196 @@ private fun HomeTabContent(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp)
-                .padding(top = 8.dp, bottom = 120.dp) // Large bottom padding for floating bar + FAB
+                .padding(top = 4.dp, bottom = 120.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            DroidspacesStatusCard(
-                status = droidspacesStatus,
-                version = null,
-                isChecking = isChecking,
-                isRootAvailable = isRootAvailable,
-                refreshTrigger = refreshTrigger,
-                appUpdate = appUpdate,
-                onClick = {
-                    if (!isRootAvailable) {
-                        // Disabled for non-root users
-                        return@DroidspacesStatusCard
-                    }
-                    if (droidspacesStatus == DroidspacesStatus.NotInstalled ||
-                        droidspacesStatus == DroidspacesStatus.Corrupted ||
-                        droidspacesStatus == DroidspacesStatus.UpdateAvailable ||
-                        droidspacesStatus == DroidspacesStatus.ModuleMissing
-                    ) {
-                        onNavigateToInstallation()
-                        return@DroidspacesStatusCard
-                    }
-                    if (droidspacesStatus != DroidspacesStatus.Working) return@DroidspacesStatusCard
-                    idleTaps++
-                    when (idleTaps) {
-                        5 -> Toast.makeText(context, R.string.easter_egg_warning, Toast.LENGTH_SHORT).show()
-                        10 -> {
-                            idleTaps = 0
-                            Toast.makeText(context, R.string.easter_egg_reward, Toast.LENGTH_SHORT).show()
-                            runCatching {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(EASTER_EGG_URL)))
-                            }
-                        }
-                    }
-                }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Only show container and running count cards if root is available
-            if (isRootAvailable) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Container count card
-                    Surface(
-                        onClick = onNavigateToContainers,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(140.dp),
-                        shape = RoundedCornerShape(24.dp), // Slightly more rounded for home cards
-                        color = MaterialTheme.colorScheme.surfaceContainer,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.Start,
-                            verticalArrangement = Arrangement.SpaceBetween
+            Box(
+                modifier = Modifier
+                    .alpha(heroAlpha)
+                    .graphicsLayer { translationY = heroY }
+            ) {
+                DroidspacesStatusCard(
+                    status = droidspacesStatus,
+                    version = null,
+                    isChecking = isChecking,
+                    isRootAvailable = isRootAvailable,
+                    refreshTrigger = refreshTrigger,
+                    appUpdate = appUpdate,
+                    onClick = {
+                        if (!isRootAvailable) return@DroidspacesStatusCard
+                        if (droidspacesStatus == DroidspacesStatus.NotInstalled ||
+                            droidspacesStatus == DroidspacesStatus.Corrupted ||
+                            droidspacesStatus == DroidspacesStatus.UpdateAvailable ||
+                            droidspacesStatus == DroidspacesStatus.ModuleMissing
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Layers,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(28.dp)
-                            )
-                            Column {
-                                Text(
-                                    text = containerCount.toString(),
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.Black
-                                )
-                                Text(
-                                    text = context.getString(R.string.containers).uppercase(),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                    letterSpacing = 1.sp
-                                )
+                            onNavigateToInstallation()
+                            return@DroidspacesStatusCard
+                        }
+                        if (droidspacesStatus != DroidspacesStatus.Working) return@DroidspacesStatusCard
+                        idleTaps++
+                        when (idleTaps) {
+                            5 -> Toast.makeText(context, R.string.easter_egg_warning, Toast.LENGTH_SHORT).show()
+                            10 -> {
+                                idleTaps = 0
+                                Toast.makeText(context, R.string.easter_egg_reward, Toast.LENGTH_SHORT).show()
+                                runCatching {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(EASTER_EGG_URL)))
+                                }
                             }
                         }
                     }
-
-                    // Running count card
-                    Surface(
-                        onClick = onNavigateToControlPanel,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(140.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainer,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.Start,
-                            verticalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PlayCircle,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary,
-                                modifier = Modifier.size(28.dp)
-                            )
-                            Column {
-                                Text(
-                                    text = runningCount.toString(),
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.Black
-                                )
-                                Text(
-                                    text = context.getString(R.string.running).uppercase(),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                    letterSpacing = 1.sp
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(6.dp))
+                )
             }
 
-            SystemInfoCard(refreshTrigger = refreshTrigger)
+            if (isRootAvailable) {
+                Column(
+                    modifier = Modifier
+                        .alpha(metricsAlpha)
+                        .graphicsLayer { translationY = metricsY },
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = context.getString(R.string.home_overview).uppercase(),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        HomeMetricTile(
+                            modifier = Modifier.weight(1f),
+                            value = animatedContainers,
+                            label = context.getString(R.string.containers),
+                            hint = context.getString(R.string.home_metric_containers_hint),
+                            icon = Icons.Default.Layers,
+                            accent = MaterialTheme.colorScheme.primary,
+                            onClick = onNavigateToContainers
+                        )
+                        HomeMetricTile(
+                            modifier = Modifier.weight(1f),
+                            value = animatedRunning,
+                            label = context.getString(R.string.running),
+                            hint = context.getString(R.string.home_metric_running_hint),
+                            icon = Icons.Default.PlayCircle,
+                            accent = MaterialTheme.colorScheme.secondary,
+                            onClick = onNavigateToControlPanel
+                        )
+                    }
+                }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Column(
+                    modifier = Modifier.alpha(actionsAlpha),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = context.getString(R.string.home_quick_actions).uppercase(),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    HomeQuickAction(
+                        icon = Icons.Default.Storage,
+                        label = context.getString(R.string.containers),
+                        description = context.getString(R.string.home_quick_containers_desc),
+                        onClick = onNavigateToContainers
+                    )
+                    HomeQuickAction(
+                        icon = Icons.Default.CloudDownload,
+                        label = context.getString(R.string.home_quick_repo),
+                        description = context.getString(R.string.home_quick_repo_desc),
+                        onClick = onNavigateToRootfsRepo
+                    )
+                    HomeQuickAction(
+                        icon = Icons.Default.Dashboard,
+                        label = context.getString(R.string.panel),
+                        description = context.getString(R.string.home_quick_panel_desc),
+                        onClick = onNavigateToControlPanel
+                    )
+                }
+            }
 
-            HelpCard()
+            Column(
+                modifier = Modifier.alpha(restAlpha),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                SystemInfoCard(refreshTrigger = refreshTrigger)
+                HelpCard()
+            }
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.height(16.dp))
+@Composable
+private fun HomeMetricTile(
+    value: Int,
+    label: String,
+    hint: String,
+    icon: ImageVector,
+    accent: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.height(148.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.28f))
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .align(Alignment.TopCenter)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(accent.copy(alpha = 0.15f), accent, accent.copy(alpha = 0.2f))
+                        )
+                    )
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = accent.copy(alpha = 0.12f)
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .size(20.dp)
+                    )
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = value.toString(),
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = hint,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
+                    )
+                }
+            }
         }
     }
 }
@@ -565,7 +698,9 @@ private fun ContainersTabContent(
     onRefresh: suspend () -> Unit,
     expandedContainerName: String?,
     onExpandedContainerNameChange: (String?) -> Unit,
-    emptyStateBottomInset: Dp = 0.dp
+    emptyStateBottomInset: Dp = 0.dp,
+    openRepoSheet: Boolean = false,
+    onOpenRepoSheetConsumed: () -> Unit = {}
 ) {
     PullToRefreshWrapper(onRefresh = { onRefresh() }) {
         ContainersScreen(
@@ -577,8 +712,74 @@ private fun ContainersTabContent(
             containerViewModel = containerViewModel,
             expandedContainerName = expandedContainerName,
             onExpandedContainerNameChange = onExpandedContainerNameChange,
-            emptyStateBottomInset = emptyStateBottomInset
+            emptyStateBottomInset = emptyStateBottomInset,
+            openRepoSheet = openRepoSheet,
+            onOpenRepoSheetConsumed = onOpenRepoSheetConsumed
         )
+    }
+}
+
+@Composable
+private fun HomeQuickAction(
+    icon: ImageVector,
+    label: String,
+    description: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.22f))
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(12.dp)
+                        .size(20.dp)
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
     }
 }
 

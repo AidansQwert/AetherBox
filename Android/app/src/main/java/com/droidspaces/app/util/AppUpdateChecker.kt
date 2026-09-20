@@ -10,7 +10,7 @@ data class AppUpdateInfo(
 
 object AppUpdateChecker {
     private const val LATEST_RELEASE_URL =
-        "https://api.github.com/repos/Rezalgabteng/Droidspaces-OSS/releases/latest"
+        "https://api.github.com/repos/AidansQwert/AetherBox/releases/latest"
 
     // Blocking, call from Dispatchers.IO. Null when the installed build is
     // already current and on any failure, so the banner just stays hidden: an

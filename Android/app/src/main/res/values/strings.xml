@@ -653,6 +653,15 @@
     <string name="unpin_container">Unpin</string>
     <string name="home_quick_actions">Quick actions</string>
     <string name="home_quick_repo">Rootfs catalog</string>
+    <string name="home_hero_caption">Backend status</string>
+    <string name="home_hero_ready">Native containers, ready when you are</string>
+    <string name="home_overview">At a glance</string>
+    <string name="home_metric_containers_hint">Installed spaces</string>
+    <string name="home_metric_running_hint">Live right now</string>
+    <string name="home_quick_containers_desc">Manage spaces</string>
+    <string name="home_quick_repo_desc">Browse images</string>
+    <string name="home_quick_panel_desc">Live control</string>
+    <string name="home_system_title">Device pulse</string>
     <string name="repo_community_feed">LXC community images</string>
     <string name="repo_community_feed_summary">Include Fedora, Void, Rocky, Gentoo and other LXC rootfs feeds</string>
     <string name="repo_source_chip">%1$s</string>
