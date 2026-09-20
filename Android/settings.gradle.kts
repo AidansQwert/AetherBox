@@ -15,6 +15,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Droidspaces"
+rootProject.name = "AetherBox"
 include(":app")
 

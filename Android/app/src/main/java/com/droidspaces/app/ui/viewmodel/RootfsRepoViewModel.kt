@@ -131,6 +131,7 @@ class RootfsRepoViewModel(application: Application) : AndroidViewModel(applicati
     fun startDownload(asset: RootfsAsset) {
         if (downloadStates[asset.downloadUrl] is AssetDownloadState.Downloading) return
         val ctx = getApplication<Application>()
+        PreferencesManager.getInstance(ctx).touchRecentRootfs(asset.downloadUrl)
         val url = asset.downloadUrl
         downloadJobs[url]?.cancel()
         val downloadId = RootfsDownloadManager.enqueue(ctx, asset)
@@ -190,6 +191,9 @@ class RootfsRepoViewModel(application: Application) : AndroidViewModel(applicati
 
     fun favoriteUrls(): Set<String> =
         PreferencesManager.getInstance(getApplication()).getRootfsFavorites()
+
+    fun recentUrls(): List<String> =
+        PreferencesManager.getInstance(getApplication()).getRecentRootfsUrls()
 
     var includeCommunityRepos: Boolean
         get() = PreferencesManager.getInstance(getApplication()).includeCommunityRepos

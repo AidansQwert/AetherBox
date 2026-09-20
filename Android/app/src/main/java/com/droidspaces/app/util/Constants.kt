@@ -64,6 +64,14 @@ object Constants {
 
     // Custom rootfs repository subscriptions
     const val KEY_CUSTOM_REPOS = "custom_rootfs_repos"
+    // Favorited rootfs download URLs (JSON string array)
+    const val KEY_ROOTFS_FAVORITES = "rootfs_favorites"
+    // Recently touched rootfs download URLs (JSON string array, newest first)
+    const val KEY_ROOTFS_RECENT = "rootfs_recent"
+    // Pinned container names (JSON string array)
+    const val KEY_PINNED_CONTAINERS = "pinned_containers"
+    // Include the curated LXC community feed (bundled + remote)
+    const val KEY_INCLUDE_COMMUNITY_REPOS = "include_community_repos"
 
     // Minimum storage requirements
     const val MIN_STORAGE_GB = 4

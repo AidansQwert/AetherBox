@@ -424,6 +424,61 @@ class PreferencesManager private constructor(context: Context) {
         return nowFavorite
     }
 
+    fun getRecentRootfsUrls(): List<String> {
+        val raw = prefs.getString(KEY_ROOTFS_RECENT, null) ?: return emptyList()
+        return try {
+            val arr = org.json.JSONArray(raw)
+            buildList {
+                for (i in 0 until arr.length()) {
+                    val url = arr.optString(i, "")
+                    if (url.isNotBlank()) add(url)
+                }
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    fun touchRecentRootfs(downloadUrl: String) {
+        if (downloadUrl.isBlank()) return
+        val next = (listOf(downloadUrl) + getRecentRootfsUrls().filter { it != downloadUrl }).take(12)
+        val arr = org.json.JSONArray()
+        next.forEach { arr.put(it) }
+        prefs.edit().putString(KEY_ROOTFS_RECENT, arr.toString()).apply()
+    }
+
+    fun getPinnedContainers(): Set<String> {
+        val raw = prefs.getString(KEY_PINNED_CONTAINERS, null) ?: return emptySet()
+        return try {
+            val arr = org.json.JSONArray(raw)
+            buildSet {
+                for (i in 0 until arr.length()) {
+                    val name = arr.optString(i, "")
+                    if (name.isNotBlank()) add(name)
+                }
+            }
+        } catch (_: Exception) {
+            emptySet()
+        }
+    }
+
+    fun isContainerPinned(name: String): Boolean = name in getPinnedContainers()
+
+    fun togglePinnedContainer(name: String): Boolean {
+        val current = getPinnedContainers().toMutableSet()
+        val nowPinned = if (name in current) {
+            current.remove(name)
+            false
+        } else {
+            current.add(name)
+            true
+        }
+        val arr = org.json.JSONArray()
+        current.forEach { arr.put(it) }
+        prefs.edit().putString(KEY_PINNED_CONTAINERS, arr.toString()).apply()
+        return nowPinned
+    }
+
     /**
      * Clear cached container OS info.
      */
@@ -509,6 +564,8 @@ class PreferencesManager private constructor(context: Context) {
         private const val KEY_CACHED_CONTAINER_CONFIG_PREFIX = Constants.KEY_CACHED_CONTAINER_CONFIG_PREFIX
         private const val KEY_CUSTOM_REPOS = Constants.KEY_CUSTOM_REPOS
         private const val KEY_ROOTFS_FAVORITES = Constants.KEY_ROOTFS_FAVORITES
+        private const val KEY_ROOTFS_RECENT = Constants.KEY_ROOTFS_RECENT
+        private const val KEY_PINNED_CONTAINERS = Constants.KEY_PINNED_CONTAINERS
         private const val KEY_INCLUDE_COMMUNITY_REPOS = Constants.KEY_INCLUDE_COMMUNITY_REPOS
 
         // Double-checked locking pattern for thread-safe singleton

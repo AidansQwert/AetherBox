@@ -106,7 +106,7 @@ jobs:
       run: |
         TAG="${{ github.event.inputs.tag_name || 'CI' }}"
         COMMIT_HASH=$(git log -1 --pretty=%h)
-        APK_NAME="Droidspaces-universal-${TAG}-${COMMIT_HASH}.apk"
+        APK_NAME="AetherBox-universal-${TAG}-${COMMIT_HASH}.apk"
         TAR_NAME=$(ls droidspaces-v*-*.tar.gz)
         mkdir -p dist
         mv Android/app/build/outputs/apk/release/app-release.apk dist/${APK_NAME}

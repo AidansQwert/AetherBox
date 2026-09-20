@@ -15,9 +15,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import java.io.File
+import java.io.FileInputStream
+import java.security.MessageDigest
 
 sealed class DownloadStatus {
     data class Progress(val percent: Int) : DownloadStatus()
+    data class Verifying(val percent: Int = 0) : DownloadStatus()
     data class Completed(val fileUri: Uri) : DownloadStatus()
     data class Failed(val reason: String) : DownloadStatus()
 }
@@ -89,7 +92,14 @@ object RootfsDownloadManager {
         while (!done) {
             delay(POLL_MS)
             val cursor = dm.query(query)
-            if (cursor == null || !cursor.moveToFirst()) {
+            if (cursor == null) {
+                emit(DownloadStatus.Failed(context.getString(R.string.repo_dl_error_unknown)))
+                return@flow
+            }
+            // Always close the cursor — previously leaked when moveToFirst() failed.
+            val hasRow = cursor.moveToFirst()
+            if (!hasRow) {
+                cursor.close()
                 emit(DownloadStatus.Failed(context.getString(R.string.repo_dl_error_unknown)))
                 return@flow
             }
@@ -109,6 +119,16 @@ object RootfsDownloadManager {
 
                 DownloadManager.STATUS_SUCCESSFUL -> {
                     done = true
+                    if (asset.sha256.isNotBlank()) {
+                        emit(DownloadStatus.Verifying())
+                        val ok = verifySha256(destFile, asset.sha256)
+                        if (!ok) {
+                            destFile.delete()
+                            dm.remove(downloadId)
+                            emit(DownloadStatus.Failed(context.getString(R.string.repo_dl_error_checksum)))
+                            return@flow
+                        }
+                    }
                     val contentUri = dm.getUriForDownloadedFile(downloadId)
                         ?: Uri.fromFile(destFile)
                     emit(DownloadStatus.Completed(contentUri))
@@ -127,28 +147,45 @@ object RootfsDownloadManager {
         dm.remove(downloadId)
     }
 
+    fun verifySha256(file: File, expectedHex: String): Boolean {
+        if (!file.exists() || expectedHex.isBlank()) return false
+        return runCatching {
+            val digest = MessageDigest.getInstance("SHA-256")
+            FileInputStream(file).use { input ->
+                val buf = ByteArray(DEFAULT_BUFFER_SIZE)
+                while (true) {
+                    val read = input.read(buf)
+                    if (read <= 0) break
+                    digest.update(buf, 0, read)
+                }
+            }
+            val actual = digest.digest().joinToString("") { "%02x".format(it) }
+            actual.equals(expectedHex.trim(), ignoreCase = true)
+        }.getOrDefault(false)
+    }
+
     private fun getFailureReason(context: Context, dm: DownloadManager, id: Long): String {
         val cursor = dm.query(DownloadManager.Query().setFilterById(id))
             ?: return context.getString(R.string.repo_dl_error_unknown)
-        return if (cursor.moveToFirst()) {
-            val code = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON))
-            cursor.close()
-            when (code) {
-                DownloadManager.ERROR_CANNOT_RESUME       -> context.getString(R.string.repo_dl_error_cannot_resume)
-                DownloadManager.ERROR_DEVICE_NOT_FOUND    -> context.getString(R.string.repo_dl_error_device_not_found)
-                DownloadManager.ERROR_FILE_ALREADY_EXISTS -> context.getString(R.string.repo_dl_error_file_exists)
-                DownloadManager.ERROR_FILE_ERROR          -> context.getString(R.string.repo_dl_error_file_error)
-                DownloadManager.ERROR_HTTP_DATA_ERROR     -> context.getString(R.string.repo_dl_error_http_data)
-                DownloadManager.ERROR_INSUFFICIENT_SPACE  -> context.getString(R.string.repo_dl_error_no_space)
-                DownloadManager.ERROR_TOO_MANY_REDIRECTS  -> context.getString(R.string.repo_dl_error_too_many_redirects)
-                DownloadManager.ERROR_UNHANDLED_HTTP_CODE -> context.getString(R.string.repo_dl_error_unhandled_http)
-                DownloadManager.ERROR_UNKNOWN             -> context.getString(R.string.repo_dl_error_unknown)
-                404                                       -> context.getString(R.string.repo_dl_error_not_found)
-                else                                      -> context.getString(R.string.repo_dl_error_code, code)
+        return cursor.use {
+            if (it.moveToFirst()) {
+                val code = it.getInt(it.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON))
+                when (code) {
+                    DownloadManager.ERROR_CANNOT_RESUME       -> context.getString(R.string.repo_dl_error_cannot_resume)
+                    DownloadManager.ERROR_DEVICE_NOT_FOUND    -> context.getString(R.string.repo_dl_error_device_not_found)
+                    DownloadManager.ERROR_FILE_ALREADY_EXISTS -> context.getString(R.string.repo_dl_error_file_exists)
+                    DownloadManager.ERROR_FILE_ERROR          -> context.getString(R.string.repo_dl_error_file_error)
+                    DownloadManager.ERROR_HTTP_DATA_ERROR     -> context.getString(R.string.repo_dl_error_http_data)
+                    DownloadManager.ERROR_INSUFFICIENT_SPACE  -> context.getString(R.string.repo_dl_error_no_space)
+                    DownloadManager.ERROR_TOO_MANY_REDIRECTS  -> context.getString(R.string.repo_dl_error_too_many_redirects)
+                    DownloadManager.ERROR_UNHANDLED_HTTP_CODE -> context.getString(R.string.repo_dl_error_unhandled_http)
+                    DownloadManager.ERROR_UNKNOWN             -> context.getString(R.string.repo_dl_error_unknown)
+                    404                                       -> context.getString(R.string.repo_dl_error_not_found)
+                    else                                      -> context.getString(R.string.repo_dl_error_code, code)
+                }
+            } else {
+                context.getString(R.string.repo_dl_error_unknown)
             }
-        } else {
-            cursor.close()
-            context.getString(R.string.repo_dl_error_unknown)
         }
     }
 }

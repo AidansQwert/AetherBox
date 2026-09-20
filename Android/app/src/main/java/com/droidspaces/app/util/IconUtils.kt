@@ -26,10 +26,11 @@ object IconUtils {
             s.contains("Gentoo", true) -> R.drawable.ic_gentoo
             s.contains("Devuan", true) -> R.drawable.ic_devuan
             s.contains("Kali", true) -> R.drawable.ic_kali
-            s.contains("Suse", true) -> R.drawable.ic_suse
+            s.contains("Suse", true) || s.contains("SUSE", true) || s.contains("openSUSE", true) -> R.drawable.ic_suse
             s.contains("CentOS", true) -> R.drawable.ic_centos
             s.contains("Rocky", true) -> R.drawable.ic_rocky
             s.contains("Alma", true) -> R.drawable.ic_almalinux
+            s.contains("Oracle", true) -> R.drawable.ic_redhat
             s.contains("Red", true) || s.contains("RHEL", true) -> R.drawable.ic_redhat
             s.contains("Void", true) -> R.drawable.ic_void
             s.contains("Manjaro", true) -> R.drawable.ic_manjaro
