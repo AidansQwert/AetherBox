@@ -225,10 +225,8 @@ int ds_config_load(const char *config_path, struct ds_config *cfg) {
   cfg->config_file_existed = 1;
 
   char line[2048];
-  int line_num = 0;
 
   while (fgets(line, sizeof(line), f)) {
-    line_num++;
     char line_copy[2048];
     safe_strncpy(line_copy, line, sizeof(line_copy));
     char *trimmed = trim_whitespace(line_copy);

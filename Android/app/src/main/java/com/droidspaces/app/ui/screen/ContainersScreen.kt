@@ -6,11 +6,19 @@ import com.droidspaces.app.ui.component.DsTextFieldDefaults
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -20,6 +28,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +39,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.droidspaces.app.ui.component.DsSnackbarHost
+import com.droidspaces.app.ui.util.FocusUtils
 import com.droidspaces.app.ui.util.ProgressDialog
 import com.droidspaces.app.ui.util.ErrorLogsDialog
 import com.droidspaces.app.ui.util.LoadingIndicator
@@ -62,6 +73,12 @@ import com.droidspaces.app.R
 import com.droidspaces.app.util.AnimationUtils
 import androidx.compose.ui.window.Dialog
 
+private enum class ContainerStatusFilter(val id: String) {
+    All("all"),
+    Running("running"),
+    Stopped("stopped")
+}
+
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun ContainersScreen(
@@ -90,6 +107,8 @@ fun ContainersScreen(
     var pendingSparseOperation by remember { mutableStateOf<SparseOperation?>(null) }
     var pendingExportContainer by remember { mutableStateOf<ContainerInfo?>(null) }
     var showRepoSheet by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var statusFilter by remember { mutableStateOf(ContainerStatusFilter.All) }
 
     // File picker launcher - CreateDocument for saving the export archive
     val exportFileLauncher = rememberLauncherForActivityResult(
@@ -162,97 +181,148 @@ fun ContainersScreen(
                 }
             }
             else -> {
-                // Show container cards
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .combinedClickable(
-                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                            indication = null,
-                            onClick = { onExpandedContainerNameChange(null) }
-                        )
-                        .padding(horizontal = 16.dp),
-                    contentPadding = PaddingValues(top = 8.dp, bottom = 120.dp), // Clear floating tab bar
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(containers, key = { it.name }) { container ->
-                        // Console button is always visible - logs persist for each container
-                        val isRunning = opsViewModel.runningOperationContainer == container.name
+                val filteredContainers = remember(containers, searchQuery, statusFilter) {
+                    containers.filter { container ->
+                        val matchesQuery = searchQuery.isBlank() ||
+                            container.name.contains(searchQuery, ignoreCase = true) ||
+                            container.hostname.contains(searchQuery, ignoreCase = true)
+                        val matchesStatus = when (statusFilter) {
+                            ContainerStatusFilter.All -> true
+                            ContainerStatusFilter.Running -> container.isRunning
+                            ContainerStatusFilter.Stopped -> !container.isRunning
+                        }
+                        matchesQuery && matchesStatus
+                    }
+                }
+                val filterCounts = remember(containers) {
+                    mapOf(
+                        ContainerStatusFilter.All.id to containers.size,
+                        ContainerStatusFilter.Running.id to containers.count { it.isRunning },
+                        ContainerStatusFilter.Stopped.id to containers.count { !it.isRunning }
+                    )
+                }
 
-                        ContainerCard(
-                            modifier = Modifier.animateItemPlacement(AnimationUtils.mediumSpec()),
-                            container = container,
-                            isOperationRunning = isRunning,
-                            isExpanded = expandedContainerName == container.name,
-                            actions = ContainerCardActions(
-                            onToggleExpand = {
-                                onExpandedContainerNameChange(if (expandedContainerName == container.name) null else container.name)
-                            },
-                             onShowLogs = {
-                                opsViewModel.showLogViewerFor = container.name
-                            },
-                            onStart = {
-                                scope.launch {
-                                    opsViewModel.executeOperation(
-                                        container, "start",
-                                        onRefresh = { containerViewModel.refresh() },
-                                        onClearUsage = { systemStatsViewModel.clearContainerUsage(it) },
-                                        onFailureSnackbar = { msg -> scope.launch { snackbarHostState.showSnackbar(msg, duration = SnackbarDuration.Long) } }
-                                    )
-                                }
-                            },
-                            onStop = {
-                                scope.launch {
-                                    opsViewModel.executeOperation(
-                                        container, "stop",
-                                        onRefresh = { containerViewModel.refresh() },
-                                        onClearUsage = { systemStatsViewModel.clearContainerUsage(it) },
-                                        onFailureSnackbar = { msg -> scope.launch { snackbarHostState.showSnackbar(msg, duration = SnackbarDuration.Long) } }
-                                    )
-                                }
-                            },
-                            onRestart = {
-                                scope.launch {
-                                    opsViewModel.executeOperation(
-                                        container, "restart",
-                                        onRefresh = { containerViewModel.refresh() },
-                                        onClearUsage = { systemStatsViewModel.clearContainerUsage(it) },
-                                        onFailureSnackbar = { msg -> scope.launch { snackbarHostState.showSnackbar(msg, duration = SnackbarDuration.Long) } }
-                                    )
-                                }
-                            },
-                            onEdit = {
-                                onExpandedContainerNameChange(null)
-                                onNavigateToEditContainer(container.name)
-                            },
-                            onEnter = {
-                                onNavigateToContainerDetails(container.name)
-                            },
-                            onUninstall = {
-                                onExpandedContainerNameChange(null)
-                                showUninstallConfirmation = container
-                            },
-                            onMigrate = {
-                                onExpandedContainerNameChange(null)
-                                pendingSparseOperation = SparseOperation.Migrate(container)
-                            },
-                            onResize = {
-                                onExpandedContainerNameChange(null)
-                                pendingSparseOperation = SparseOperation.Resize(container)
-                            },
-                            onExport = {
-                                onExpandedContainerNameChange(null)
-                                // Generate filename: <name>_yyyyMMdd_HHmmss.tar.gz
-                                val timestamp = java.text.SimpleDateFormat(
-                                    "yyyyMMdd_HHmmss",
-                                    java.util.Locale.US
-                                ).format(java.util.Date())
-                                val fileName = "${container.name}_${timestamp}.tar.gz"
-                                pendingExportContainer = container
-                                exportFileLauncher.launch(fileName)
-                            }
-                            )
+                Column(modifier = Modifier.fillMaxSize()) {
+                    ContainerSearchBar(
+                        query = searchQuery,
+                        onQueryChange = { searchQuery = it }
+                    )
+                    ContainerFilterChipsRow(
+                        selectedFilter = statusFilter,
+                        counts = filterCounts,
+                        onFilterSelected = { statusFilter = it }
+                    )
+
+                    if (filteredContainers.isEmpty()) {
+                        EmptyState(
+                            icon = Icons.Default.SearchOff,
+                            title = context.getString(R.string.no_containers_match),
+                            description = context.getString(R.string.no_containers_match_description),
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(bottom = emptyStateBottomInset)
                         )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .weight(1f)
+                                .combinedClickable(
+                                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = { onExpandedContainerNameChange(null) }
+                                )
+                                .padding(horizontal = 16.dp),
+                            contentPadding = PaddingValues(top = 8.dp, bottom = 120.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(filteredContainers, key = { it.name }) { container ->
+                                val isRunning = opsViewModel.runningOperationContainer == container.name
+                                var appeared by remember(container.name) { mutableStateOf(false) }
+                                LaunchedEffect(container.name) { appeared = true }
+                                val enterAlpha by animateFloatAsState(
+                                    targetValue = if (appeared) 1f else 0f,
+                                    animationSpec = AnimationUtils.cardFadeSpec(),
+                                    label = "cardEnterAlpha"
+                                )
+
+                                ContainerCard(
+                                    modifier = Modifier
+                                        .alpha(enterAlpha)
+                                        .animateItemPlacement(AnimationUtils.mediumSpec()),
+                                    container = container,
+                                    isOperationRunning = isRunning,
+                                    isExpanded = expandedContainerName == container.name,
+                                    actions = ContainerCardActions(
+                                    onToggleExpand = {
+                                        onExpandedContainerNameChange(if (expandedContainerName == container.name) null else container.name)
+                                    },
+                                     onShowLogs = {
+                                        opsViewModel.showLogViewerFor = container.name
+                                    },
+                                    onStart = {
+                                        scope.launch {
+                                            opsViewModel.executeOperation(
+                                                container, "start",
+                                                onRefresh = { containerViewModel.refresh() },
+                                                onClearUsage = { systemStatsViewModel.clearContainerUsage(it) },
+                                                onFailureSnackbar = { msg -> scope.launch { snackbarHostState.showSnackbar(msg, duration = SnackbarDuration.Long) } }
+                                            )
+                                        }
+                                    },
+                                    onStop = {
+                                        scope.launch {
+                                            opsViewModel.executeOperation(
+                                                container, "stop",
+                                                onRefresh = { containerViewModel.refresh() },
+                                                onClearUsage = { systemStatsViewModel.clearContainerUsage(it) },
+                                                onFailureSnackbar = { msg -> scope.launch { snackbarHostState.showSnackbar(msg, duration = SnackbarDuration.Long) } }
+                                            )
+                                        }
+                                    },
+                                    onRestart = {
+                                        scope.launch {
+                                            opsViewModel.executeOperation(
+                                                container, "restart",
+                                                onRefresh = { containerViewModel.refresh() },
+                                                onClearUsage = { systemStatsViewModel.clearContainerUsage(it) },
+                                                onFailureSnackbar = { msg -> scope.launch { snackbarHostState.showSnackbar(msg, duration = SnackbarDuration.Long) } }
+                                            )
+                                        }
+                                    },
+                                    onEdit = {
+                                        onExpandedContainerNameChange(null)
+                                        onNavigateToEditContainer(container.name)
+                                    },
+                                    onEnter = {
+                                        onNavigateToContainerDetails(container.name)
+                                    },
+                                    onUninstall = {
+                                        onExpandedContainerNameChange(null)
+                                        showUninstallConfirmation = container
+                                    },
+                                    onMigrate = {
+                                        onExpandedContainerNameChange(null)
+                                        pendingSparseOperation = SparseOperation.Migrate(container)
+                                    },
+                                    onResize = {
+                                        onExpandedContainerNameChange(null)
+                                        pendingSparseOperation = SparseOperation.Resize(container)
+                                    },
+                                    onExport = {
+                                        onExpandedContainerNameChange(null)
+                                        // Generate filename: <name>_yyyyMMdd_HHmmss.tar.gz
+                                        val timestamp = java.text.SimpleDateFormat(
+                                            "yyyyMMdd_HHmmss",
+                                            java.util.Locale.US
+                                        ).format(java.util.Date())
+                                        val fileName = "${container.name}_${timestamp}.tar.gz"
+                                        pendingExportContainer = container
+                                        exportFileLauncher.launch(fileName)
+                                    }
+                                    )
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -554,3 +624,134 @@ private fun UninstallConfirmationDialog(
     }
     }
 
+
+@Composable
+private fun ContainerSearchBar(query: String, onQueryChange: (String) -> Unit) {
+    val context = LocalContext.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+    val borderColor by animateColorAsState(
+        targetValue = if (isFocused) MaterialTheme.colorScheme.primary
+        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
+        animationSpec = AnimationUtils.fastSpec(),
+        label = "containerSearchBorder"
+    )
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, borderColor)
+    ) {
+        TextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier.fillMaxWidth(),
+            interactionSource = interactionSource,
+            placeholder = {
+                Text(
+                    context.getString(R.string.search_containers),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = null,
+                    tint = if (isFocused) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
+            },
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = { onQueryChange("") }) {
+                        Icon(Icons.Default.Clear, contentDescription = null)
+                    }
+                }
+            },
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                cursorColor = MaterialTheme.colorScheme.primary
+            ),
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodyLarge,
+            keyboardOptions = FocusUtils.searchKeyboardOptions,
+            keyboardActions = FocusUtils.clearFocusKeyboardActions()
+        )
+    }
+}
+
+@Composable
+private fun ContainerFilterChipsRow(
+    selectedFilter: ContainerStatusFilter,
+    counts: Map<String, Int>,
+    onFilterSelected: (ContainerStatusFilter) -> Unit
+) {
+    val context = LocalContext.current
+    val listState = rememberLazyListState()
+    val filters = listOf(
+        ContainerStatusFilter.All to R.string.all_legend,
+        ContainerStatusFilter.Running to R.string.running,
+        ContainerStatusFilter.Stopped to R.string.stopped
+    )
+
+    LaunchedEffect(selectedFilter) {
+        val idx = filters.indexOfFirst { it.first == selectedFilter }
+        if (idx >= 0) listState.animateScrollToItem(idx)
+    }
+
+    LazyRow(
+        state = listState,
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        items(filters) { (filter, labelRes) ->
+            val count = counts[filter.id] ?: 0
+            val isSelected = selectedFilter == filter
+            val dotColor = when (filter) {
+                ContainerStatusFilter.All -> null
+                ContainerStatusFilter.Running -> MaterialTheme.colorScheme.primary
+                ContainerStatusFilter.Stopped -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            }
+            FilterChip(
+                selected = isSelected,
+                onClick = { onFilterSelected(filter) },
+                label = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        if (dotColor != null) {
+                            Surface(
+                                modifier = Modifier.size(6.dp),
+                                shape = CircleShape,
+                                color = dotColor
+                            ) {}
+                        }
+                        Text(
+                            "${context.getString(labelRes)} ($count)",
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                },
+                shape = RoundedCornerShape(12.dp),
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    selected = isSelected,
+                    enabled = true,
+                    borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                    selectedBorderColor = MaterialTheme.colorScheme.primary
+                )
+            )
+        }
+    }
+}

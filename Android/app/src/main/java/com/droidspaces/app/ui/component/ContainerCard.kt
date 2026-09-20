@@ -92,7 +92,13 @@ fun ContainerCard(
             ),
         shape = cardShape,
         color = MaterialTheme.colorScheme.surfaceContainer,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+        // Running containers keep a quiet fill and carry state in the accent border
+        // (DESIGN.md: borders and tint carry state, fills stay quiet).
+        border = BorderStroke(
+            1.dp,
+            if (container.isRunning) MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+        )
     ) {
         Column(
             modifier = Modifier

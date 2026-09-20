@@ -133,6 +133,10 @@
     <!-- Containers Screen -->
     <string name="no_containers_installed">No containers installed</string>
     <string name="install_container_description">Install a container using the button below</string>
+    <string name="search_containers">Search containers...</string>
+    <string name="stopped">Stopped</string>
+    <string name="no_containers_match">No containers match</string>
+    <string name="no_containers_match_description">Try a different name or clear the status filter</string>
     <string name="install_container">Install Container</string>
     <string name="install">Install</string>
     <string name="file_picker_error">Please select a .tar.xz or .tar.gz file. Selected: %1$s</string>
