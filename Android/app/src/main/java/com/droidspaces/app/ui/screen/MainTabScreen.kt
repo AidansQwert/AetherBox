@@ -7,9 +7,19 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.RocketLaunch
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -483,45 +493,38 @@ private fun HomeTabContent(
     var idleTaps by remember(droidspacesStatus) { mutableStateOf(0) }
     var showThemeEditor by remember { mutableStateOf(false) }
 
-    var mastheadVisible by remember { mutableStateOf(false) }
-    var gridVisible by remember { mutableStateOf(false) }
-    var repoVisible by remember { mutableStateOf(false) }
-    var themeVisible by remember { mutableStateOf(false) }
-    var restVisible by remember { mutableStateOf(false) }
-
+    var stage by remember { mutableStateOf(0) }
     LaunchedEffect(Unit) {
-        delay(20); mastheadVisible = true
-        delay(70); gridVisible = true
-        delay(70); repoVisible = true
-        delay(70); themeVisible = true
-        delay(70); restVisible = true
+        for (i in 1..6) {
+            delay(55)
+            stage = i
+        }
     }
 
-    val mastAlpha by animateFloatAsState(
-        if (mastheadVisible) 1f else 0f,
-        AnimationUtils.fadeInSpec(),
-        label = "mastA"
-    )
-    val gridAlpha by animateFloatAsState(
-        if (gridVisible) 1f else 0f,
-        AnimationUtils.fadeInSpec(),
-        label = "gridA"
-    )
-    val repoAlpha by animateFloatAsState(
-        if (repoVisible) 1f else 0f,
-        AnimationUtils.fadeInSpec(),
-        label = "repoA"
-    )
-    val themeAlpha by animateFloatAsState(
-        if (themeVisible) 1f else 0f,
-        AnimationUtils.fadeInSpec(),
-        label = "themeA"
-    )
-    val restAlpha by animateFloatAsState(
-        if (restVisible) 1f else 0f,
-        AnimationUtils.fadeInSpec(),
-        label = "restA"
-    )
+    fun enter(threshold: Int): Pair<Float, Float> {
+        val visible = stage >= threshold
+        return if (visible) 1f to 0f else 0f to 28f
+    }
+
+    val (mastA, mastY) = enter(1)
+    val (orbitA, orbitY) = enter(2)
+    val (pulseA, pulseY) = enter(3)
+    val (gridA, gridY) = enter(4)
+    val (repoA, repoY) = enter(5)
+    val (restA, restY) = enter(6)
+
+    val mastAlpha by animateFloatAsState(mastA, AnimationUtils.fadeInSpec(), label = "mastA")
+    val mastOffset by animateFloatAsState(mastY, AnimationUtils.slowSpec(), label = "mastY")
+    val orbitAlpha by animateFloatAsState(orbitA, AnimationUtils.fadeInSpec(), label = "orbitA")
+    val orbitOffset by animateFloatAsState(orbitY, AnimationUtils.slowSpec(), label = "orbitY")
+    val pulseAlpha by animateFloatAsState(pulseA, AnimationUtils.fadeInSpec(), label = "pulseA")
+    val pulseOffset by animateFloatAsState(pulseY, AnimationUtils.slowSpec(), label = "pulseY")
+    val gridAlpha by animateFloatAsState(gridA, AnimationUtils.fadeInSpec(), label = "gridA")
+    val gridOffset by animateFloatAsState(gridY, AnimationUtils.slowSpec(), label = "gridY")
+    val repoAlpha by animateFloatAsState(repoA, AnimationUtils.fadeInSpec(), label = "repoA")
+    val repoOffset by animateFloatAsState(repoY, AnimationUtils.slowSpec(), label = "repoY")
+    val restAlpha by animateFloatAsState(restA, AnimationUtils.fadeInSpec(), label = "restA")
+    val restOffset by animateFloatAsState(restY, AnimationUtils.slowSpec(), label = "restY")
 
     val animatedContainers by animateIntAsState(
         targetValue = containerCount,
@@ -553,22 +556,25 @@ private fun HomeTabContent(
                 .padding(bottom = 120.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            // Full-bleed brand plane — AetherBox first, not a DroidMaster card stack
+            // Brand plane — leaner, with feature callout
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .alpha(mastAlpha)
-                    .padding(bottom = 8.dp)
+                    .graphicsLayer {
+                        alpha = mastAlpha
+                        translationY = mastOffset
+                    }
+                    .padding(bottom = 4.dp)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(196.dp)
+                        .height(172.dp)
                         .background(
                             Brush.verticalGradient(
                                 listOf(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
-                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.08f),
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.26f),
+                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f),
                                     Color.Transparent
                                 )
                             )
@@ -578,8 +584,8 @@ private fun HomeTabContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 22.dp)
-                        .padding(top = 10.dp, bottom = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(top = 8.dp, bottom = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
                         text = context.getString(R.string.home_brand_kicker),
@@ -600,43 +606,127 @@ private fun HomeTabContent(
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = context.getString(R.string.home_command_center),
+                        text = context.getString(R.string.home_layout_tagline),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.88f)
                     )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.32f)),
+                        modifier = Modifier.padding(top = 4.dp)
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(999.dp),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text(
-                                text = context.getString(
-                                    R.string.home_spaces_live,
-                                    animatedContainers,
-                                    animatedRunning
-                                ),
-                                style = MaterialTheme.typography.labelLarge,
-                                fontFamily = JetBrainsMono,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            Icon(
+                                imageVector = Icons.Default.Bolt,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(16.dp)
                             )
+                            Column {
+                                Text(
+                                    text = context.getString(R.string.home_feat_holo),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontFamily = SpaceGrotesk,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                                Text(
+                                    text = context.getString(R.string.home_feat_holo_desc),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            // Bento: status spans full width, then two metric tiles
+            // Quick orbit — new layout element
+            if (isRootAvailable) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer {
+                            alpha = orbitAlpha
+                            translationY = orbitOffset
+                        }
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = context.getString(R.string.home_orbit_title),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = context.getString(R.string.home_orbit_subtitle),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        HomeOrbitAction(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Default.Layers,
+                            label = context.getString(R.string.home_orbit_spaces),
+                            accent = MaterialTheme.colorScheme.primary,
+                            onClick = onNavigateToContainers
+                        )
+                        HomeOrbitAction(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Default.RocketLaunch,
+                            label = context.getString(R.string.home_orbit_live),
+                            accent = MaterialTheme.colorScheme.tertiary,
+                            onClick = onNavigateToControlPanel
+                        )
+                        HomeOrbitAction(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Default.CloudDownload,
+                            label = context.getString(R.string.home_orbit_images),
+                            accent = MaterialTheme.colorScheme.secondary,
+                            onClick = onNavigateToRootfsRepo
+                        )
+                    }
+                }
+            }
+
+            // Live pulse strip
+            if (isRootAvailable) {
+                HomeLivePulse(
+                    runningCount = animatedRunning,
+                    containerCount = animatedContainers,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer {
+                            alpha = pulseAlpha
+                            translationY = pulseOffset
+                        }
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 16.dp)
+                )
+            }
+
+            // Backend status + metric tiles
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .alpha(gridAlpha)
-                    .padding(horizontal = 16.dp),
+                    .graphicsLayer {
+                        alpha = gridAlpha
+                        translationY = gridOffset
+                    }
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 DroidspacesStatusCard(
@@ -702,7 +792,10 @@ private fun HomeTabContent(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .alpha(repoAlpha)
+                    .graphicsLayer {
+                        alpha = repoAlpha
+                        translationY = repoOffset
+                    }
                     .padding(top = 22.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -775,11 +868,14 @@ private fun HomeTabContent(
                 }
             }
 
-            // Appearance dock — theme mode + palettes + create
+            // Appearance + rest
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .alpha(themeAlpha)
+                    .graphicsLayer {
+                        alpha = restAlpha
+                        translationY = restOffset
+                    }
                     .padding(horizontal = 16.dp)
                     .padding(top = 22.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -883,16 +979,7 @@ private fun HomeTabContent(
                         )
                     }
                 }
-            }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .alpha(restAlpha)
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 22.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
                 if (isRootAvailable) {
                     HomeQuickAction(
                         icon = Icons.Default.Dashboard,
@@ -917,6 +1004,159 @@ private fun HomeTabContent(
                 showThemeEditor = false
             }
         )
+    }
+}
+
+@Composable
+private fun HomeOrbitAction(
+    icon: ImageVector,
+    label: String,
+    accent: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.height(96.dp),
+        shape = RoundedCornerShape(22.dp),
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.38f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(accent.copy(alpha = 0.08f))
+                .padding(12.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.Start
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = accent.copy(alpha = 0.16f),
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                fontFamily = SpaceGrotesk,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeLivePulse(
+    runningCount: Int,
+    containerCount: Int,
+    modifier: Modifier = Modifier
+) {
+    val active = runningCount > 0
+    val infinite = rememberInfiniteTransition(label = "livePulse")
+    val pulse by infinite.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseAlpha"
+    )
+    val scale by infinite.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.35f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseScale"
+    )
+
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(
+            1.dp,
+            if (active) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.45f)
+            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(22.dp)) {
+                if (active) {
+                    Box(
+                        modifier = Modifier
+                            .size(14.dp)
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                                alpha = pulse * 0.45f
+                            }
+                            .background(
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f),
+                                CircleShape
+                            )
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .background(
+                            if (active) MaterialTheme.colorScheme.tertiary
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                            CircleShape
+                        )
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = LocalContext.current.getString(R.string.home_live_pulse),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontFamily = JetBrainsMono,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    letterSpacing = 1.2.sp
+                )
+                Text(
+                    text = if (active) {
+                        LocalContext.current.getString(R.string.home_live_active, runningCount)
+                    } else {
+                        LocalContext.current.getString(R.string.home_live_idle)
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontFamily = SpaceGrotesk,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Text(
+                text = LocalContext.current.getString(
+                    R.string.home_spaces_live,
+                    containerCount,
+                    runningCount
+                ),
+                style = MaterialTheme.typography.labelLarge,
+                fontFamily = JetBrainsMono,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
     }
 }
 
