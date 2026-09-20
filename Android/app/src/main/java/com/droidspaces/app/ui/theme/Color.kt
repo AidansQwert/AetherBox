@@ -73,10 +73,74 @@ enum class ThemePalette(
         primaryDark = Color(0xFFF48FB1),    // Light Pink
         secondaryDark = Color(0xFFF8BBD0),  // Pale Pink
         tertiaryDark = Color(0xFFB39DDB)    // Light Violet
+    ),
+    NORD(
+        displayName = "Nord",
+        primaryLight = Color(0xFF5E81AC),
+        secondaryLight = Color(0xFF81A1C1),
+        tertiaryLight = Color(0xFF88C0D0),
+        primaryDark = Color(0xFF88C0D0),
+        secondaryDark = Color(0xFF81A1C1),
+        tertiaryDark = Color(0xFF8FBCBB)
+    ),
+    MOCHA(
+        displayName = "Mocha",
+        primaryLight = Color(0xFF6F4E37),
+        secondaryLight = Color(0xFFA0522D),
+        tertiaryLight = Color(0xFFC4A484),
+        primaryDark = Color(0xFFD4A574),
+        secondaryDark = Color(0xFFE8B88A),
+        tertiaryDark = Color(0xFFF0D5B8)
+    ),
+    EMBER(
+        displayName = "Ember",
+        primaryLight = Color(0xFFB71C1C),
+        secondaryLight = Color(0xFFE65100),
+        tertiaryLight = Color(0xFFFF8F00),
+        primaryDark = Color(0xFFEF9A9A),
+        secondaryDark = Color(0xFFFFAB91),
+        tertiaryDark = Color(0xFFFFE082)
+    ),
+    GRAPHITE(
+        displayName = "Graphite",
+        primaryLight = Color(0xFF455A64),
+        secondaryLight = Color(0xFF607D8B),
+        tertiaryLight = Color(0xFF78909C),
+        primaryDark = Color(0xFFB0BEC5),
+        secondaryDark = Color(0xFF90A4AE),
+        tertiaryDark = Color(0xFFCFD8DC)
+    ),
+    AURORA(
+        displayName = "Aurora",
+        primaryLight = Color(0xFF00897B),
+        secondaryLight = Color(0xFF43A047),
+        tertiaryLight = Color(0xFF1E88E5),
+        primaryDark = Color(0xFF4DB6AC),
+        secondaryDark = Color(0xFF81C784),
+        tertiaryDark = Color(0xFF64B5F6)
+    ),
+    // Cool midnight teal — distinct from the purple / cream defaults.
+    NEBULA(
+        displayName = "Nebula",
+        primaryLight = Color(0xFF006D77),
+        secondaryLight = Color(0xFF0A9396),
+        tertiaryLight = Color(0xFF94D2BD),
+        primaryDark = Color(0xFF2EC4B6),
+        secondaryDark = Color(0xFF48CAE4),
+        tertiaryDark = Color(0xFF90E0EF)
+    ),
+    GLACIER(
+        displayName = "Glacier",
+        primaryLight = Color(0xFF1565C0),
+        secondaryLight = Color(0xFF0277BD),
+        tertiaryLight = Color(0xFF00838F),
+        primaryDark = Color(0xFF90CAF9),
+        secondaryDark = Color(0xFF81D4FA),
+        tertiaryDark = Color(0xFF80DEEA)
     );
 
     companion object {
         fun fromName(name: String): ThemePalette =
-            entries.find { it.name == name } ?: CATPPUCCIN
+            entries.find { it.name == name } ?: NEBULA
     }
 }

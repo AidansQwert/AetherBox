@@ -64,7 +64,7 @@ fun AccentColorPicker(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            userScrollEnabled = false
+            userScrollEnabled = true
         ) {
             items(
                 items = ThemePalette.entries.toList(),

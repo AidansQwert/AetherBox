@@ -6,7 +6,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
-import android.os.Build
 import org.json.JSONArray
 import java.net.HttpURLConnection
 import java.net.URL
@@ -19,7 +18,10 @@ data class RootfsAsset(
     val sizeBytes: Long,
     val buildDate: String,
     val author: String,
-    val sourceRepoName: String
+    val sourceRepoName: String,
+    val sha256: String = "",
+    val version: String = "",
+    val distro: String = ""
 ) {
     // Unique filename derived from metadata - avoids conflicts with generic names like rootfs.tar.xz
     // Includes a short hash of the download URL to guarantee uniqueness even across repos
@@ -39,6 +41,11 @@ data class RootfsAsset(
             .joinToString("") { "%02x".format(it) }
         return "$sanitized-$architecture-$buildDate-$urlHash$ext"
     }
+
+    val displayDistro: String
+        get() = distro.ifBlank {
+            name.substringBefore(" - ").substringBefore(" GNU").trim().ifBlank { name }
+        }
 }
 
 sealed class RepoResult {
@@ -51,6 +58,10 @@ object RootfsRepository {
     private const val OFFICIAL_REPO_URL =
         "https://github.com/Droidspaces/Droidspaces-rootfs-builder/raw/refs/heads/main/rootfs.json"
     private const val OFFICIAL_REPO_NAME = "Droidspaces Official"
+    private const val COMMUNITY_ASSET = "rootfs_lxc_community.json"
+    private const val COMMUNITY_REPO_NAME = "LXC Community"
+    private const val COMMUNITY_REMOTE_URL =
+        "https://raw.githubusercontent.com/Rezalgabteng/Droidspaces-OSS/main/Android/rootfs-feeds/lxc-community.json"
     private const val CONNECT_TIMEOUT = 10_000
     private const val READ_TIMEOUT    = 15_000
 
@@ -58,13 +69,17 @@ object RootfsRepository {
         val prefs = PreferencesManager.getInstance(context)
         val customRepos = prefs.getCustomRepos()
 
-        // Fetch official + all custom repos concurrently
-        val officialDeferred = async { fetchSingleRepo(OFFICIAL_REPO_URL, OFFICIAL_REPO_NAME) }
-        val customDeferreds = customRepos.map { (name, url) ->
-            async { fetchSingleRepo(url, name) }
+        val fetches = buildList {
+            add(async { fetchSingleRepo(OFFICIAL_REPO_URL, OFFICIAL_REPO_NAME) })
+            if (prefs.includeCommunityRepos) {
+                add(async { fetchCommunityRepo(context) })
+            }
+            customRepos.forEach { (name, url) ->
+                add(async { fetchSingleRepo(url, name) })
+            }
         }
 
-        val results = listOf(officialDeferred).plus(customDeferreds).awaitAll()
+        val results = fetches.awaitAll()
 
         val allAssets = mutableListOf<RootfsAsset>()
         val errors = mutableListOf<String>()
@@ -76,13 +91,53 @@ object RootfsRepository {
             }
         }
 
+        // Prefer the first occurrence of a download URL (official wins over community).
+        val deduped = allAssets.distinctBy { it.downloadUrl }
+
         val arch = DeviceArch.suffix(context)
-        val filtered = allAssets.filter { it.architecture == arch }
+        val filtered = deduped.filter { archMatches(it.architecture, arch) }
+            .sortedWith(
+                compareBy<RootfsAsset> { it.displayDistro.lowercase() }
+                    .thenBy { it.name.lowercase() }
+            )
 
         return@withContext when {
             filtered.isNotEmpty() -> RepoResult.Success(filtered)
             errors.isNotEmpty()    -> RepoResult.Error(errors.joinToString("\n"))
             else                   -> RepoResult.Error(context.getString(R.string.repo_error_no_assets))
+        }
+    }
+
+    private fun archMatches(assetArch: String, deviceArch: String): Boolean {
+        if (assetArch.equals(deviceArch, ignoreCase = true)) return true
+        // LXC feeds use arm64 / amd64 / armhf / i386 naming.
+        return when (deviceArch) {
+            "aarch64" -> assetArch.equals("arm64", ignoreCase = true)
+            "x86_64"  -> assetArch.equals("amd64", ignoreCase = true) ||
+                assetArch.equals("x86_64", ignoreCase = true)
+            "x86"     -> assetArch.equals("i386", ignoreCase = true) ||
+                assetArch.equals("i686", ignoreCase = true)
+            "armhf"   -> assetArch.equals("armhf", ignoreCase = true) ||
+                assetArch.equals("armv7l", ignoreCase = true)
+            else -> false
+        }
+    }
+
+    private fun fetchCommunityRepo(context: Context): RepoResult {
+        // Prefer a fresh remote catalog when available; fall back to the APK-bundled snapshot.
+        val remote = fetchSingleRepo(COMMUNITY_REMOTE_URL, COMMUNITY_REPO_NAME)
+        if (remote is RepoResult.Success) return remote
+
+        return runCatching {
+            val json = context.assets.open(COMMUNITY_ASSET).bufferedReader().use { it.readText() }
+            val assets = parseRootfsJson(json, COMMUNITY_REPO_NAME)
+            if (assets.isEmpty()) RepoResult.Error("$COMMUNITY_REPO_NAME: no assets found")
+            else RepoResult.Success(assets)
+        }.getOrElse { e ->
+            when (remote) {
+                is RepoResult.Error -> remote
+                else -> RepoResult.Error("$COMMUNITY_REPO_NAME: ${e.message ?: "unknown error"}")
+            }
         }
     }
 
@@ -104,10 +159,11 @@ object RootfsRepository {
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             connectTimeout = CONNECT_TIMEOUT
             readTimeout    = READ_TIMEOUT
-            setRequestProperty("Accept", "application/vnd.github+json")
+            instanceFollowRedirects = true
+            setRequestProperty("Accept", "application/json,application/vnd.github+json,*/*")
             setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
         }
-        if (conn.responseCode != 200) {
+        if (conn.responseCode !in 200..299) {
             conn.disconnect()
             return null
         }
@@ -116,12 +172,13 @@ object RootfsRepository {
         return body
     }
 
-    private fun parseRootfsJson(json: String, repoName: String): List<RootfsAsset> {
+    internal fun parseRootfsJson(json: String, repoName: String): List<RootfsAsset> {
         val arr = JSONArray(json)
         return buildList {
             for (i in 0 until arr.length()) {
                 val obj         = arr.getJSONObject(i)
                 val downloadUrl = obj.optString("download_url", "")
+                if (downloadUrl.isBlank()) continue
                 add(
                     RootfsAsset(
                         name           = obj.optString("name", ""),
@@ -131,7 +188,10 @@ object RootfsRepository {
                         sizeBytes      = obj.optLong("size_bytes", 0L),
                         buildDate      = obj.optString("build_date", ""),
                         author         = obj.optString("author", repoName),
-                        sourceRepoName = repoName
+                        sourceRepoName = repoName,
+                        sha256         = obj.optString("sha256", ""),
+                        version        = obj.optString("version", ""),
+                        distro         = obj.optString("distro", "")
                     )
                 )
             }

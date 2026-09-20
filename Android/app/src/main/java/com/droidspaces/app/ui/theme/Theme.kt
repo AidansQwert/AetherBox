@@ -170,7 +170,7 @@ fun DroidspacesTheme(
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
     amoledMode: Boolean = false,
-    themePalette: ThemePalette = ThemePalette.CATPPUCCIN,
+    themePalette: ThemePalette = ThemePalette.NEBULA,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
@@ -204,6 +204,7 @@ fun DroidspacesTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = DsShapes,
         content = content
     )
 }

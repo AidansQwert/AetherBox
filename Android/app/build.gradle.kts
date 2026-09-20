@@ -53,11 +53,13 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.droidspaces.app"
+        // Distinct package so this fork installs beside upstream Droidspaces.
+        applicationId = "com.aetherbox.app"
         minSdk = 26
         targetSdk = 34
         versionCode = dsVersionCodeVal
         versionName = dsVersionName
+        setProperty("archivesBaseName", "AetherBox-$dsVersionName")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

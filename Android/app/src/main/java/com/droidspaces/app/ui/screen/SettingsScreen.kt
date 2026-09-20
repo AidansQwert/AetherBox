@@ -363,8 +363,8 @@ fun SettingsScreen(
                 )
             }
 
-            // AMOLED Mode (shown when followSystemTheme is true OR manual darkTheme is true)
-            if (followSystemTheme || darkTheme) {
+            // AMOLED only applies in effective dark mode
+            if (darkTheme) {
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                 SwitchItem(
                     icon = Icons.Default.RadioButtonUnchecked,
@@ -749,7 +749,7 @@ private fun AboutDialog(onDismiss: () -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/ravindu644/Droidspaces-OSS"))
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Rezalgabteng/Droidspaces-OSS"))
                                 context.startActivity(intent)
                             }
                             .padding(horizontal = 16.dp, vertical = 12.dp),

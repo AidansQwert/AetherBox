@@ -263,17 +263,27 @@ fun MainTabScreen(
                         ) { expandedContainerName = null }
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Storage,
+                            imageVector = Icons.Default.BlurOn,
                             contentDescription = null,
                             modifier = Modifier
                                 .padding(end = 8.dp)
-                                .size(24.dp)
+                                .size(24.dp),
+                            tint = MaterialTheme.colorScheme.primary
                         )
-                        Text(
-                            text = context.getString(selectedTab.titleResId),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Black
-                        )
+                        Column {
+                            Text(
+                                text = context.getString(R.string.app_name),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.8.sp
+                            )
+                            Text(
+                                text = context.getString(selectedTab.titleResId),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Black
+                            )
+                        }
                     }
                 },
                 actions = {
@@ -607,32 +617,39 @@ private fun MainBottomBar(
     val context = LocalContext.current
     val tabs = TabItem.entries
     val selectedIndex = tabs.indexOf(selectedTab)
-    
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = androidx.compose.ui.graphics.RectangleShape,
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        shadowElevation = 0.dp 
+
+            // Floating capsule nav — inset from screen edges for a modern dock look.
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
-                thickness = 1.dp
-            )
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(68.dp),
+            shape = com.droidspaces.app.ui.theme.NavBarShape,
+            color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.92f),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.32f)
+            ),
+            shadowElevation = 0.dp,
+            tonalElevation = 0.dp
+        ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                    .height(56.dp)
+                    .fillMaxSize()
+                    .padding(horizontal = 6.dp, vertical = 6.dp)
             ) {
-                // Background Indicator
-                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                     val tabWidth = maxWidth / tabs.size
                     val offset by androidx.compose.animation.core.animateDpAsState(
                         targetValue = tabWidth * selectedIndex,
                         animationSpec = androidx.compose.animation.core.spring(
-                            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioLowBouncy,
-                            stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+                            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                            stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow
                         ),
                         label = "IndicatorOffset"
                     )
@@ -642,20 +659,25 @@ private fun MainBottomBar(
                             .width(tabWidth)
                             .fillMaxHeight()
                             .offset(x = offset),
-                        shape = RoundedCornerShape(18.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                        shape = RoundedCornerShape(22.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+                        )
                     ) {}
                 }
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxSize(),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     tabs.forEach { tab ->
                         val isSelected = selectedTab == tab
                         val contentColor by androidx.compose.animation.animateColorAsState(
-                            targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            targetValue = if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
                             label = "IconColor"
                         )
 
@@ -664,8 +686,8 @@ private fun MainBottomBar(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight(),
-                            color = androidx.compose.ui.graphics.Color.Transparent,
-                            shape = RoundedCornerShape(16.dp)
+                            color = Color.Transparent,
+                            shape = RoundedCornerShape(22.dp)
                         ) {
                             Column(
                                 modifier = Modifier.fillMaxSize(),
@@ -682,7 +704,7 @@ private fun MainBottomBar(
                                     text = context.getString(tab.titleResId),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = contentColor,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     fontSize = 11.sp
                                 )
                             }
@@ -690,7 +712,6 @@ private fun MainBottomBar(
                     }
                 }
             }
-            Spacer(modifier = Modifier.navigationBarsPadding())
         }
     }
 }

@@ -60,7 +60,7 @@
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Terminal sessions for Droidspaces containers" />
+                android:value="Terminal sessions for AetherBox containers" />
         </service>
 
     </application>
