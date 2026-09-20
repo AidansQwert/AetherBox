@@ -647,7 +647,12 @@
     <string name="repo_status_failed">FAILED</string>
     <string name="repo_filter_all">All</string>
     <string name="repo_filter_favorites">Favorites</string>
+    <string name="repo_filter_recent">Recent</string>
     <string name="repo_favorite">Favorite</string>
+    <string name="pin_container">Pin to top</string>
+    <string name="unpin_container">Unpin</string>
+    <string name="home_quick_actions">Quick actions</string>
+    <string name="home_quick_repo">Rootfs catalog</string>
     <string name="repo_community_feed">LXC community images</string>
     <string name="repo_community_feed_summary">Include Fedora, Void, Rocky, Gentoo and other LXC rootfs feeds</string>
     <string name="repo_source_chip">%1$s</string>

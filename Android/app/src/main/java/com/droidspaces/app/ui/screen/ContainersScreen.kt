@@ -90,7 +90,9 @@ fun ContainersScreen(
     containerViewModel: ContainerViewModel,
     expandedContainerName: String?,
     onExpandedContainerNameChange: (String?) -> Unit,
-    emptyStateBottomInset: Dp = 0.dp
+    emptyStateBottomInset: Dp = 0.dp,
+    openRepoSheet: Boolean = false,
+    onOpenRepoSheetConsumed: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -109,6 +111,14 @@ fun ContainersScreen(
     var showRepoSheet by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var statusFilter by remember { mutableStateOf(ContainerStatusFilter.All) }
+    var pinTick by remember { mutableStateOf(0) }
+
+    LaunchedEffect(openRepoSheet) {
+        if (openRepoSheet) {
+            showRepoSheet = true
+            onOpenRepoSheetConsumed()
+        }
+    }
 
     // File picker launcher - CreateDocument for saving the export archive
     val exportFileLauncher = rememberLauncherForActivityResult(
@@ -181,7 +191,8 @@ fun ContainersScreen(
                 }
             }
             else -> {
-                val filteredContainers = remember(containers, searchQuery, statusFilter) {
+                val pinnedNames = remember(pinTick, containers) { prefsManager.getPinnedContainers() }
+                val filteredContainers = remember(containers, searchQuery, statusFilter, pinnedNames) {
                     containers.filter { container ->
                         val matchesQuery = searchQuery.isBlank() ||
                             container.name.contains(searchQuery, ignoreCase = true) ||
@@ -192,7 +203,10 @@ fun ContainersScreen(
                             ContainerStatusFilter.Stopped -> !container.isRunning
                         }
                         matchesQuery && matchesStatus
-                    }
+                    }.sortedWith(
+                        compareByDescending<ContainerInfo> { it.name in pinnedNames }
+                            .thenBy { it.name.lowercase() }
+                    )
                 }
                 val filterCounts = remember(containers) {
                     mapOf(
@@ -252,12 +266,17 @@ fun ContainersScreen(
                                     container = container,
                                     isOperationRunning = isRunning,
                                     isExpanded = expandedContainerName == container.name,
+                                    isPinned = container.name in pinnedNames,
                                     actions = ContainerCardActions(
                                     onToggleExpand = {
                                         onExpandedContainerNameChange(if (expandedContainerName == container.name) null else container.name)
                                     },
                                      onShowLogs = {
                                         opsViewModel.showLogViewerFor = container.name
+                                    },
+                                    onTogglePin = {
+                                        prefsManager.togglePinnedContainer(container.name)
+                                        pinTick++
                                     },
                                     onStart = {
                                         scope.launch {

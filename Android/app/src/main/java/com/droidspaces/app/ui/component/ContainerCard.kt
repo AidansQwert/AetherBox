@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -53,6 +54,7 @@ data class ContainerCardActions(
     val onExport: () -> Unit = {},
     val onToggleExpand: () -> Unit = {},
     val onShowLogs: () -> Unit = {},
+    val onTogglePin: () -> Unit = {},
 )
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -62,6 +64,7 @@ fun ContainerCard(
     actions: ContainerCardActions = ContainerCardActions(),
     isOperationRunning: Boolean = false,
     isExpanded: Boolean = false,
+    isPinned: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val onStart = actions.onStart
@@ -75,6 +78,7 @@ fun ContainerCard(
     val onExport = actions.onExport
     val onToggleExpand = actions.onToggleExpand
     val onShowLogs = actions.onShowLogs
+    val onTogglePin = actions.onTogglePin
     val context = LocalContext.current
     val cardShape = RoundedCornerShape(20.dp)
 
@@ -134,12 +138,31 @@ fun ContainerCard(
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1
                     )
+                    if (isPinned) {
+                        Icon(
+                            imageVector = Icons.Default.PushPin,
+                            contentDescription = context.getString(R.string.unpin_container),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    IconButton(onClick = onTogglePin) {
+                        Icon(
+                            imageVector = if (isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin,
+                            contentDescription = context.getString(
+                                if (isPinned) R.string.unpin_container else R.string.pin_container
+                            ),
+                            tint = if (isPinned) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                     IconButton(onClick = onShowLogs) {
                         Icon(Icons.Default.Terminal, context.getString(R.string.view_logs), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                     }
@@ -299,6 +322,15 @@ fun ContainerCard(
                     Spacer(Modifier.height(12.dp))
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                     Spacer(Modifier.height(12.dp))
+
+                    ActionItem(
+                        icon = if (isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin,
+                        label = context.getString(
+                            if (isPinned) R.string.unpin_container else R.string.pin_container
+                        ),
+                        tint = MaterialTheme.colorScheme.primary,
+                        onClick = { onTogglePin() }
+                    )
 
                     ActionItem(
                         icon = Icons.Default.Edit,
