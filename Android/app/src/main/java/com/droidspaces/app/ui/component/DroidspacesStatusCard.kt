@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,9 +27,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.droidspaces.app.util.AnimationUtils
 import com.droidspaces.app.util.AppUpdateInfo
 import com.droidspaces.app.util.SystemInfoManager
 import com.droidspaces.app.R
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 
 enum class DroidspacesStatus {
     Working,
@@ -101,8 +108,24 @@ fun DroidspacesStatusCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    // Soft pulse only while healthy so the beacon reads "alive"
+                    // without drawing attention during check or error states.
+                    val pulse = rememberInfiniteTransition(label = "beacon")
+                    val pulsedAlpha by pulse.animateFloat(
+                        initialValue = 0.45f,
+                        targetValue = 1f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(
+                                durationMillis = AnimationUtils.DURATION_SLOW * 4,
+                                easing = AnimationUtils.STANDARD_EASING
+                            ),
+                            repeatMode = RepeatMode.Reverse
+                        ),
+                        label = "beaconAlpha"
+                    )
+                    val beaconAlpha = if (isWorking && !isChecking) pulsedAlpha else 1f
                     Surface(
-                        modifier = Modifier.size(10.dp),
+                        modifier = Modifier.size(10.dp).alpha(beaconAlpha),
                         shape = CircleShape,
                         color = if (isChecking) MaterialTheme.colorScheme.outline else accentColor
                     ) {}
