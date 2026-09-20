@@ -33,7 +33,7 @@ private inline fun Color.blend(other: Color, ratio: Float): Color {
  * Derives tinted surfaces, containers, and on-colors from the palette primaries
  * to mimic Android's Monet-style full-scheme generation.
  */
-private fun darkColorSchemeFor(palette: ThemePalette): ColorScheme {
+private fun darkColorSchemeFor(palette: ThemePaletteColors): ColorScheme {
     val p = palette.primaryDark
     val s = palette.secondaryDark
     val t = palette.tertiaryDark
@@ -81,7 +81,7 @@ private fun darkColorSchemeFor(palette: ThemePalette): ColorScheme {
  * Derives tinted surfaces, containers, and on-colors from the palette primaries
  * to mimic Android's Monet-style full-scheme generation.
  */
-private fun lightColorSchemeFor(palette: ThemePalette): ColorScheme {
+private fun lightColorSchemeFor(palette: ThemePaletteColors): ColorScheme {
     val p = palette.primaryLight
     val s = palette.secondaryLight
     val t = palette.tertiaryLight
@@ -147,7 +147,7 @@ private fun amoledSchemeFrom(dynamicScheme: ColorScheme): ColorScheme =
  * Same idea for the fixed palettes, but the surfaces keep a trace of the selected
  * accent so the palette is still recognisable against the black.
  */
-private fun staticAmoledSchemeFor(palette: ThemePalette): ColorScheme {
+private fun staticAmoledSchemeFor(palette: ThemePaletteColors): ColorScheme {
     val p = palette.primaryDark
     return darkColorSchemeFor(palette).copy(
         background = AMOLED_BLACK,
@@ -171,13 +171,17 @@ fun DroidspacesTheme(
     dynamicColor: Boolean = true,
     amoledMode: Boolean = false,
     themePalette: ThemePalette = ThemePalette.NEBULA,
+    customThemeColors: CustomThemeColors = CustomThemeColors(),
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
+    val resolved = remember(themePalette, customThemeColors) {
+        resolveThemePaletteColors(themePalette, customThemeColors)
+    }
 
     // Memoize color scheme computation to avoid recalculation on every recomposition
     // This eliminates color processing from the main thread during draw cycles
-    val colorScheme = remember(darkTheme, dynamicColor, amoledMode, themePalette, context) {
+    val colorScheme = remember(darkTheme, dynamicColor, amoledMode, resolved, context) {
         when {
         amoledMode && darkTheme && dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
                 // Pre-computed AMOLED scheme with dynamic colors - zero runtime cost
@@ -190,10 +194,10 @@ fun DroidspacesTheme(
         }
         amoledMode && darkTheme -> {
                 // Pre-computed static AMOLED scheme using selected palette
-                staticAmoledSchemeFor(themePalette)
+                staticAmoledSchemeFor(resolved)
         }
-        darkTheme -> darkColorSchemeFor(themePalette)
-        else -> lightColorSchemeFor(themePalette)
+        darkTheme -> darkColorSchemeFor(resolved)
+        else -> lightColorSchemeFor(resolved)
         }
     }
 

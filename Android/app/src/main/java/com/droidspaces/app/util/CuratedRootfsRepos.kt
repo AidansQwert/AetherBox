@@ -37,7 +37,7 @@ object CuratedRootfsRepos {
             name = "AetherBox LXC Picks",
             description = "Curated Fedora, Void, Rocky, Alma, Gentoo, Devuan, Kali",
             author = "AetherBox",
-            url = "https://raw.githubusercontent.com/Rezalgabteng/Droidspaces-OSS/main/Android/rootfs-feeds/lxc-community.json",
+            url = "https://raw.githubusercontent.com/AidansQwert/AetherBox/main/Android/rootfs-feeds/lxc-community.json",
             category = "lxc"
         ),
         CuratedRootfsRepo(

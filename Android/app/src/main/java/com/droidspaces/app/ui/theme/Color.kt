@@ -137,10 +137,24 @@ enum class ThemePalette(
         primaryDark = Color(0xFF90CAF9),
         secondaryDark = Color(0xFF81D4FA),
         tertiaryDark = Color(0xFF80DEEA)
+    ),
+    /** Placeholder colours — real values come from [CustomThemeColors] at runtime. */
+    CUSTOM(
+        displayName = "Custom",
+        primaryLight = Color(0xFF006D77),
+        secondaryLight = Color(0xFF0A9396),
+        tertiaryLight = Color(0xFF94D2BD),
+        primaryDark = Color(0xFF2EC4B6),
+        secondaryDark = Color(0xFF48CAE4),
+        tertiaryDark = Color(0xFF90E0EF)
     );
 
     companion object {
         fun fromName(name: String): ThemePalette =
             entries.find { it.name == name } ?: NEBULA
+
+        /** Presets shown in the picker (excludes CUSTOM — that has its own tile). */
+        val presets: List<ThemePalette>
+            get() = entries.filter { it != CUSTOM }
     }
 }

@@ -183,7 +183,8 @@ private fun ThemeWrapper(content: @Composable () -> Unit) {
         darkTheme = themeState.darkTheme,
         dynamicColor = themeState.useDynamicColor,
         amoledMode = themeState.amoledMode,
-        themePalette = themeState.themePalette
+        themePalette = themeState.themePalette,
+        customThemeColors = themeState.customThemeColors
     ) {
         content()
     }

@@ -401,8 +401,12 @@ fun SettingsScreen(
                 AccentColorPicker(
                     selectedPalette = themeState.themePalette,
                     isDarkTheme = darkTheme,
+                    customThemeColors = themeState.customThemeColors,
                     onPaletteSelected = { palette ->
                         prefsManager.themePalette = palette.name
+                        if (palette != ThemePalette.CUSTOM) {
+                            prefsManager.useDynamicColor = false
+                        }
                     }
                 )
             }
@@ -670,7 +674,7 @@ private fun AboutDialog(onDismiss: () -> Unit) {
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
             ) {
                 Column {
-                    // Developer 1
+                    // Upstream maintainer
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -696,6 +700,46 @@ private fun AboutDialog(onDismiss: () -> Unit) {
                             )
                             Text(
                                 text = context.getString(R.string.developer_ravindu644_role),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                            contentDescription = context.getString(R.string.github),
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
+                    // AetherBox third-party developer
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/AidansQwert"))
+                                context.startActivity(intent)
+                            }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = context.getString(R.string.developer_aidansqwert),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = context.getString(R.string.developer_aidansqwert_role),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -749,7 +793,7 @@ private fun AboutDialog(onDismiss: () -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Rezalgabteng/Droidspaces-OSS"))
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/AidansQwert/AetherBox"))
                                 context.startActivity(intent)
                             }
                             .padding(horizontal = 16.dp, vertical = 12.dp),

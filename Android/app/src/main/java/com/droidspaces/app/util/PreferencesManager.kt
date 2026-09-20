@@ -144,6 +144,38 @@ class PreferencesManager private constructor(context: Context) {
             prefs.edit().putString(KEY_THEME_PALETTE, value).apply()
         }
 
+    var customThemePrimaryHue: Float
+        get() = prefs.getFloat(KEY_CUSTOM_THEME_PRIMARY_HUE, 175f)
+        set(value) {
+            prefs.edit().putFloat(KEY_CUSTOM_THEME_PRIMARY_HUE, value).apply()
+        }
+
+    var customThemeSecondaryHue: Float
+        get() = prefs.getFloat(KEY_CUSTOM_THEME_SECONDARY_HUE, 195f)
+        set(value) {
+            prefs.edit().putFloat(KEY_CUSTOM_THEME_SECONDARY_HUE, value).apply()
+        }
+
+    var customThemeTertiaryHue: Float
+        get() = prefs.getFloat(KEY_CUSTOM_THEME_TERTIARY_HUE, 145f)
+        set(value) {
+            prefs.edit().putFloat(KEY_CUSTOM_THEME_TERTIARY_HUE, value).apply()
+        }
+
+    var customThemeColors: com.droidspaces.app.ui.theme.CustomThemeColors
+        get() = com.droidspaces.app.ui.theme.CustomThemeColors(
+            primaryHue = customThemePrimaryHue,
+            secondaryHue = customThemeSecondaryHue,
+            tertiaryHue = customThemeTertiaryHue
+        )
+        set(value) {
+            prefs.edit()
+                .putFloat(KEY_CUSTOM_THEME_PRIMARY_HUE, value.primaryHue)
+                .putFloat(KEY_CUSTOM_THEME_SECONDARY_HUE, value.secondaryHue)
+                .putFloat(KEY_CUSTOM_THEME_TERTIARY_HUE, value.tertiaryHue)
+                .apply()
+        }
+
     // Terminal-only dark mode - independent of the app-wide theme, so the rest
     // of the app can stay light while the terminal page renders dark.
     var terminalDarkTheme: Boolean
@@ -554,6 +586,9 @@ class PreferencesManager private constructor(context: Context) {
         private const val KEY_TERMINAL_TAP_KEYBOARD = Constants.KEY_TERMINAL_TAP_KEYBOARD
         private const val KEY_TERMINAL_KEYBOARD_LEFT = Constants.KEY_TERMINAL_KEYBOARD_LEFT
         const val KEY_THEME_PALETTE = Constants.KEY_THEME_PALETTE
+        private const val KEY_CUSTOM_THEME_PRIMARY_HUE = Constants.KEY_CUSTOM_THEME_PRIMARY_HUE
+        private const val KEY_CUSTOM_THEME_SECONDARY_HUE = Constants.KEY_CUSTOM_THEME_SECONDARY_HUE
+        private const val KEY_CUSTOM_THEME_TERTIARY_HUE = Constants.KEY_CUSTOM_THEME_TERTIARY_HUE
         const val KEY_DAEMON_MODE_ENABLED = Constants.KEY_DAEMON_MODE_ENABLED
         const val KEY_SYMLINK_ENABLED = Constants.KEY_SYMLINK_ENABLED
         const val KEY_TREAT_AS_64BIT = Constants.KEY_TREAT_AS_64BIT

@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import com.droidspaces.app.util.Constants
 import com.droidspaces.app.util.PreferencesManager
 
 /**
@@ -42,6 +43,9 @@ fun rememberThemeState(): ThemeState {
     var themePalette by remember {
         mutableStateOf(ThemePalette.fromName(prefsManager.themePalette))
     }
+    var customThemeColors by remember {
+        mutableStateOf(prefsManager.customThemeColors)
+    }
 
     // Register SharedPreferences listener to detect changes
     DisposableEffect(prefsManager) {
@@ -62,6 +66,11 @@ fun rememberThemeState(): ThemeState {
                 "theme_palette" -> {
                     themePalette = ThemePalette.fromName(prefsManager.themePalette)
                 }
+                Constants.KEY_CUSTOM_THEME_PRIMARY_HUE,
+                Constants.KEY_CUSTOM_THEME_SECONDARY_HUE,
+                Constants.KEY_CUSTOM_THEME_TERTIARY_HUE -> {
+                    customThemeColors = prefsManager.customThemeColors
+                }
             }
         }
 
@@ -78,13 +87,22 @@ fun rememberThemeState(): ThemeState {
     val effectiveDarkTheme = if (followSystemTheme) systemDark else darkTheme
 
     // Return state that triggers recomposition when any theme preference changes
-    return remember(followSystemTheme, darkTheme, amoledMode, useDynamicColor, systemDark, themePalette) {
+    return remember(
+        followSystemTheme,
+        darkTheme,
+        amoledMode,
+        useDynamicColor,
+        systemDark,
+        themePalette,
+        customThemeColors
+    ) {
         ThemeState(
             followSystemTheme = followSystemTheme,
             darkTheme = effectiveDarkTheme,
             amoledMode = amoledMode,
             useDynamicColor = useDynamicColor,
-            themePalette = themePalette
+            themePalette = themePalette,
+            customThemeColors = customThemeColors
         )
     }
 }
@@ -94,5 +112,9 @@ data class ThemeState(
     val darkTheme: Boolean,
     val amoledMode: Boolean,
     val useDynamicColor: Boolean,
-    val themePalette: ThemePalette
-)
+    val themePalette: ThemePalette,
+    val customThemeColors: CustomThemeColors = CustomThemeColors()
+) {
+    val resolvedPalette: ThemePaletteColors
+        get() = resolveThemePaletteColors(themePalette, customThemeColors)
+}
