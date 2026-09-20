@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
+import com.droidspaces.app.ui.component.AmbientBackground
 import com.droidspaces.app.ui.navigation.DroidspacesNavigation
 import com.droidspaces.app.ui.theme.DroidspacesTheme
 import com.droidspaces.app.ui.theme.rememberThemeState
@@ -146,10 +147,7 @@ class MainActivity : AppCompatActivity() {
         setContent {
             ThemeWrapper {
                 NotificationRationaleDialog()
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
+                AmbientBackground {
                     DroidspacesNavigation(
                         onContentReady = { isLoading = false },
                         pendingShortcut = pendingShortcut,

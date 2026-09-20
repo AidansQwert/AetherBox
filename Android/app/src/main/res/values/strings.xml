@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- App Info -->
-    <string name="app_name">Droidspaces</string>
+    <string name="app_name">AetherBox</string>
 
     <!-- Welcome Screen -->
-    <string name="welcome_tagline">Linux containers. Native. No overhead.</string>
+    <string name="welcome_tagline">Your Linux containers. Native. Modern.</string>
     <string name="get_started">Get Started</string>
     <!-- Welcome feature cards -->
     <string name="feat_containers_title">Real Linux containers</string>
@@ -32,7 +32,7 @@
     <string name="root_required_message">Root access is required to manage containers.</string>
     <string name="check_root_access">Check Root Access</string>
     <string name="check_root_access_click">Click below to check root access</string>
-    <string name="root_available_message">You can now use Droidspaces</string>
+    <string name="root_available_message">You can now use AetherBox</string>
     <string name="skip">Skip</string>
     <string name="continue_button">Continue</string>
 
@@ -57,7 +57,7 @@
     <string name="backend_not_installed">Backend: Not installed</string>
     <string name="backend_corrupted">Backend: Corrupted</string>
     <string name="root_unavailable">Root access is unavailable.</string>
-    <string name="grant_root_message">Grant root access to continue exploring droidspaces !</string>
+    <string name="grant_root_message">Grant root access to continue exploring AetherBox!</string>
     <string name="unknown">Unknown</string>
     <string name="easter_egg_warning">The backend is fine, no need to spam it 🙂</string>
     <string name="easter_egg_reward">You asked for it 🎵</string>
@@ -112,11 +112,11 @@
     <string name="dynamic_color_description">Use Android 12+ Monet theming (Material You)</string>
     <string name="accent_color">Accent Color</string>
     <string name="daemon_mode">Daemon Mode</string>
-    <string name="daemon_mode_description">Run Droidspaces as a persistent system-level daemon to bypass seccomp blocks from Magisk/APatch, GrapheneOS, etc. This enables high-privilege operations by fetching and running commands from userspace (Reboot required).</string>
-    <string name="symlink_integration">Integrate Droidspaces to the system path</string>
+    <string name="daemon_mode_description">Run AetherBox as a persistent system-level daemon to bypass seccomp blocks from Magisk/APatch, GrapheneOS, etc. This enables high-privilege operations by fetching and running commands from userspace (Reboot required).</string>
+    <string name="symlink_integration">Integrate AetherBox to the system path</string>
     <string name="symlink_integration_description">Create a symlink at /system/bin to access the droidspaces command in Android root shell. WARNING: ENABLING THIS CAUSES BOOTLOOP IF YOUR MOUNT SYSTEM IS OVERLAYFS meta modules. Only use this option when using Magic Mount-based mount system (Reboot required)</string>
     <string name="about_section">About</string>
-    <string name="about_droidspaces">About Droidspaces</string>
+    <string name="about_droidspaces">About AetherBox</string>
     <string name="about_description">LXC-Style container manager for Android</string>
     <string name="developers">Developer(s)</string>
     <string name="developer_ravindu644">ravindu644</string>
@@ -366,9 +366,9 @@
     <string name="installation_failed">Installation Failed</string>
     <string name="done">Done</string>
     <string name="installing_module">Installing Module</string>
-    <string name="installing_droidspaces">Installing Droidspaces</string>
+    <string name="installing_droidspaces">Installing AetherBox</string>
     <string name="module_installed_success">Magisk module installed successfully</string>
-    <string name="backend_installed_success">Droidspaces backend installed successfully</string>
+    <string name="backend_installed_success">AetherBox backend installed successfully</string>
     <string name="module_installation_failed">Module installation failed</string>
     <string name="binary_installation_failed">Binary installation failed</string>
     <string name="removing_old_module">Removing old module...</string>
@@ -488,7 +488,7 @@
 
     <!-- Empty State -->
     <string name="backend_not_available">Backend not available</string>
-    <string name="backend_not_available_description">Droidspaces backend is not installed or corrupted. Please install it first.</string>
+    <string name="backend_not_available_description">AetherBox backend is not installed or corrupted. Please install it first.</string>
     <string name="root_access_not_available">Root access not available</string>
     <string name="root_access_not_available_description">This page is disabled as root access is unavailable</string>
 
@@ -558,7 +558,7 @@
     <!-- Requirements -->
     <string name="check_requirements">Check Requirements</string>
     <string name="requirements_check_title">Requirements Check</string>
-    <string name="requirements_for_droidspaces">Requirements for Droidspaces</string>
+    <string name="requirements_for_droidspaces">Requirements for AetherBox</string>
     <string name="requirements_check_completed_successfully">Requirements check completed successfully</string>
     <string name="requirements_check_completed_with_errors">Requirements check completed with errors</string>
     <string name="kernel_requirements_copied">Kernel requirements copied to clipboard</string>
@@ -575,12 +575,12 @@
 
     <!-- Notification Permission -->
     <string name="notification_permission_title">Notification Permission</string>
-    <string name="notification_permission_rationale">Droidspaces needs to show a persistent notification to keep your terminal sessions running in the background. Without this, Android (especially on Samsung devices) might kill the terminal service unexpectedly.</string>
+    <string name="notification_permission_rationale">AetherBox needs to show a persistent notification to keep your terminal sessions running in the background. Without this, Android (especially on Samsung devices) might kill the terminal service unexpectedly.</string>
     <string name="allow">Allow</string>
     <string name="not_now">Not now</string>
 
     <!-- Terminal Session Notification -->
-    <string name="notification_title">Droidspaces Terminal</string>
+    <string name="notification_title">AetherBox Terminal</string>
     <string name="notification_action_exit">EXIT</string>
     <string name="notification_wakelock_on">Wake lock: ON</string>
     <string name="notification_wakelock_off">Wake lock: OFF</string>
@@ -599,9 +599,9 @@
     <string name="resize_dialog_message">Resizing the sparse image for \"%1$s\". Increasing size is safer than shrinking. Please backup your data.</string>
     <string name="starting_migration">Starting migration operation...</string>
     <string name="starting_resizing">Starting resizing operation...</string>
-    <string name="help_card_title">New to Droidspaces?</string>
+    <string name="help_card_title">New to AetherBox?</string>
     <string name="help_card_message">Tap here to learn how to setup your first Linux container!</string>
-    <string name="help_card_url">https://github.com/ravindu644/Droidspaces-OSS/blob/main/Documentation/Installation-Android.md</string>
+    <string name="help_card_url">https://github.com/Rezalgabteng/Droidspaces-OSS/blob/main/Documentation/Installation-Android.md</string>
     <string name="privileged_mode">Privileged Mode</string>
     <string name="privileged_mode_description">Configure granular security relaxation for nested virtualization or advanced hardware access.</string>
     <string name="privileged_nomask_desc">Disable jail masks to allow write access to /proc and /sys. Note: /sys remains read-only unless Hardware Access is also enabled.</string>
@@ -627,7 +627,7 @@
     <string name="repo_cancel">Cancel</string>
     <string name="repo_install">Install</string>
     <string name="repo_retry">Retry</string>
-    <string name="repo_notification_description">Droidspaces rootfs download</string>
+    <string name="repo_notification_description">AetherBox rootfs download</string>
     <string name="repo_error_no_assets">No rootfs tarballs found in latest release</string>
     <string name="repo_dl_error_unknown">Unknown error</string>
     <string name="repo_dl_error_cannot_resume">Cannot resume download</string>
@@ -640,24 +640,42 @@
     <string name="repo_dl_error_unhandled_http">Unexpected HTTP response</string>
     <string name="repo_dl_error_not_found">File not found (404)</string>
     <string name="repo_dl_error_code">Error code %1$d</string>
+    <string name="repo_dl_error_checksum">Download checksum mismatch — file deleted</string>
     <string name="repo_status_ready">READY</string>
     <string name="repo_status_downloading">DOWNLOADING</string>
+    <string name="repo_status_verifying">VERIFYING</string>
     <string name="repo_status_failed">FAILED</string>
+    <string name="repo_filter_all">All</string>
+    <string name="repo_filter_favorites">Favorites</string>
+    <string name="repo_favorite">Favorite</string>
+    <string name="repo_community_feed">LXC community images</string>
+    <string name="repo_community_feed_summary">Include Fedora, Void, Rocky, Gentoo and other LXC rootfs feeds</string>
+    <string name="repo_source_chip">%1$s</string>
     <string name="repo_add_custom">Add Custom Repository</string>
     <string name="repo_manage_custom">Manage Repositories</string>
-    <string name="repo_manager_subtitle">Subscribe to custom rootfs.json feeds.</string>
+    <string name="repo_manager_subtitle">Subscribe to custom rootfs.json feeds from GitHub or HTTPS.</string>
     <string name="repo_custom_name_hint">Repository name</string>
-    <string name="repo_custom_url_hint">rootfs.json URL</string>
+    <string name="repo_custom_url_hint">owner/repo or https://…/rootfs.json</string>
     <string name="repo_custom_add">Subscribe</string>
     <string name="repo_custom_remove">Remove</string>
     <string name="repo_custom_name_empty">Name cannot be empty</string>
     <string name="repo_custom_url_empty">URL cannot be empty</string>
-    <string name="repo_custom_url_invalid">URL must start with https://</string>
+    <string name="repo_custom_url_invalid">Use https://… or GitHub owner/repo[@branch]</string>
+    <string name="repo_custom_already_added">This repository is already subscribed</string>
+    <string name="repo_presets_title">GitHub catalogs</string>
+    <string name="repo_presets_subtitle">One-tap subscribe to known rootfs.json feeds</string>
+    <string name="repo_subscribed_title">Your subscriptions</string>
+    <string name="repo_github_hint">Tip: paste owner/repo — we resolve it to raw.githubusercontent.com/…/rootfs.json</string>
+    <string name="repo_add_github">Add from GitHub</string>
+    <string name="repo_cat_official">Official</string>
+    <string name="repo_cat_lxc">LXC</string>
+    <string name="repo_cat_community">Community</string>
+    <string name="repo_catalog_subtitle">AetherBox catalog</string>
     <string name="debugging_section">Debugging</string>
     <string name="experimental_section">Experimental</string>
     <string name="treat_as_64bit">Use the 64-bit backend</string>
     <string name="treat_as_64bit_description">Your OS is 32-bit but the kernel is 64-bit. Install the 64-bit backend and list 64-bit rootfs images instead.</string>
-    <string name="app_update_message">Droidspaces %1$s is ready. Tap to open the release on GitHub.</string>
+    <string name="app_update_message">AetherBox %1$s is ready. Tap to open the release on GitHub.</string>
     <string name="updates_section">Updates</string>
     <string name="check_app_updates">Check for app updates</string>
     <string name="check_app_updates_description">Look for a new release on GitHub when the app opens</string>

@@ -3,7 +3,6 @@ import androidx.compose.ui.graphics.Color
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,7 +14,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -39,14 +39,35 @@ fun WelcomeScreen(onNavigateToRootCheck: () -> Unit) {
     var cardsVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        delay(60); iconVisible = true
-        delay(120); titleVisible = true
-        delay(150); cardsVisible = true
+        delay(40); iconVisible = true
+        delay(100); titleVisible = true
+        delay(120); cardsVisible = true
     }
 
-    val iconAlpha by animateFloatAsState(if (iconVisible) 1f else 0f, AnimationUtils.fadeInSpec(), label = "icon")
-    val titleAlpha by animateFloatAsState(if (titleVisible) 1f else 0f, AnimationUtils.fadeInSpec(), label = "title")
-    val cardsAlpha by animateFloatAsState(if (cardsVisible) 1f else 0f, AnimationUtils.fadeInSpec(), label = "cards")
+    val iconAlpha by animateFloatAsState(if (iconVisible) 1f else 0f, AnimationUtils.fadeInSpec(), label = "iconA")
+    val iconScale by animateFloatAsState(
+        if (iconVisible) 1f else 0.82f,
+        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
+        label = "iconS"
+    )
+    val titleAlpha by animateFloatAsState(if (titleVisible) 1f else 0f, AnimationUtils.fadeInSpec(), label = "titleA")
+    val titleOffset by animateFloatAsState(
+        if (titleVisible) 0f else 18f,
+        AnimationUtils.mediumSpec(),
+        label = "titleY"
+    )
+    val cardsAlpha by animateFloatAsState(if (cardsVisible) 1f else 0f, AnimationUtils.fadeInSpec(), label = "cardsA")
+
+    val pulse = rememberInfiniteTransition(label = "heroPulse")
+    val glow by pulse.animateFloat(
+        initialValue = 0.08f,
+        targetValue = 0.18f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glow"
+    )
 
     val cards = listOf(
         ShowcaseCard(Icons.Default.Terminal, R.string.feat_containers_title, R.string.feat_containers_desc),
@@ -80,27 +101,39 @@ fun WelcomeScreen(onNavigateToRootCheck: () -> Unit) {
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(44.dp))
+            Spacer(modifier = Modifier.height(36.dp))
 
-            // Hero: Tux (Static as requested)
             Box(
                 modifier = Modifier
                     .alpha(iconAlpha)
-                    .size(160.dp),
+                    .scale(iconScale)
+                    .size(168.dp),
                 contentAlignment = Alignment.Center
             ) {
+                Surface(
+                    modifier = Modifier.size(150.dp),
+                    shape = RoundedCornerShape(40.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = glow),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                    tonalElevation = 0.dp
+                ) {}
                 Icon(
                     painter = painterResource(id = R.drawable.ic_tux),
                     contentDescription = null,
-                    modifier = Modifier.size(130.dp),
+                    modifier = Modifier.size(118.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Hero text
-            Column(modifier = Modifier.alpha(titleAlpha), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier
+                    .alpha(titleAlpha)
+                    .graphicsLayer { translationY = titleOffset },
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Text(
                     text = context.getString(R.string.app_name),
                     style = MaterialTheme.typography.displaySmall,
@@ -117,17 +150,36 @@ fun WelcomeScreen(onNavigateToRootCheck: () -> Unit) {
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Feature cards
             Column(
                 modifier = Modifier.fillMaxWidth().alpha(cardsAlpha),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                cards.forEach { card ->
+                cards.forEachIndexed { index, card ->
+                    var shown by remember { mutableStateOf(false) }
+                    LaunchedEffect(cardsVisible) {
+                        if (cardsVisible) {
+                            delay(index * 45L)
+                            shown = true
+                        }
+                    }
+                    val cardAlpha by animateFloatAsState(
+                        if (shown) 1f else 0f,
+                        AnimationUtils.cardFadeSpec(),
+                        label = "cardA$index"
+                    )
+                    val cardY by animateFloatAsState(
+                        if (shown) 0f else 14f,
+                        AnimationUtils.mediumSpec(),
+                        label = "cardY$index"
+                    )
                     Surface(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .alpha(cardAlpha)
+                            .graphicsLayer { translationY = cardY },
                         shape = RoundedCornerShape(20.dp),
                         color = MaterialTheme.colorScheme.surfaceContainer,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
                         tonalElevation = 0.dp
                     ) {
                         Row(

@@ -139,7 +139,7 @@ class PreferencesManager private constructor(context: Context) {
         }
 
     var themePalette: String
-        get() = prefs.getString(KEY_THEME_PALETTE, "CATPPUCCIN") ?: "CATPPUCCIN"
+        get() = prefs.getString(KEY_THEME_PALETTE, "NEBULA") ?: "NEBULA"
         set(value) {
             prefs.edit().putString(KEY_THEME_PALETTE, value).apply()
         }
@@ -385,6 +385,45 @@ class PreferencesManager private constructor(context: Context) {
         prefs.edit().putString(KEY_CUSTOM_REPOS, arr.toString()).apply()
     }
 
+    var includeCommunityRepos: Boolean
+        get() = prefs.getBoolean(KEY_INCLUDE_COMMUNITY_REPOS, true)
+        set(value) {
+            prefs.edit().putBoolean(KEY_INCLUDE_COMMUNITY_REPOS, value).apply()
+        }
+
+    fun getRootfsFavorites(): Set<String> {
+        val raw = prefs.getString(KEY_ROOTFS_FAVORITES, null) ?: return emptySet()
+        return try {
+            val arr = org.json.JSONArray(raw)
+            buildSet {
+                for (i in 0 until arr.length()) {
+                    val url = arr.optString(i, "")
+                    if (url.isNotBlank()) add(url)
+                }
+            }
+        } catch (_: Exception) {
+            emptySet()
+        }
+    }
+
+    fun isRootfsFavorite(downloadUrl: String): Boolean =
+        downloadUrl in getRootfsFavorites()
+
+    fun toggleRootfsFavorite(downloadUrl: String): Boolean {
+        val current = getRootfsFavorites().toMutableSet()
+        val nowFavorite = if (downloadUrl in current) {
+            current.remove(downloadUrl)
+            false
+        } else {
+            current.add(downloadUrl)
+            true
+        }
+        val arr = org.json.JSONArray()
+        current.forEach { arr.put(it) }
+        prefs.edit().putString(KEY_ROOTFS_FAVORITES, arr.toString()).apply()
+        return nowFavorite
+    }
+
     /**
      * Clear cached container OS info.
      */
@@ -469,6 +508,8 @@ class PreferencesManager private constructor(context: Context) {
         private const val KEY_CACHED_CONTAINER_NAMES = Constants.KEY_CACHED_CONTAINER_NAMES
         private const val KEY_CACHED_CONTAINER_CONFIG_PREFIX = Constants.KEY_CACHED_CONTAINER_CONFIG_PREFIX
         private const val KEY_CUSTOM_REPOS = Constants.KEY_CUSTOM_REPOS
+        private const val KEY_ROOTFS_FAVORITES = Constants.KEY_ROOTFS_FAVORITES
+        private const val KEY_INCLUDE_COMMUNITY_REPOS = Constants.KEY_INCLUDE_COMMUNITY_REPOS
 
         // Double-checked locking pattern for thread-safe singleton
         // @Volatile ensures visibility across threads without full synchronization

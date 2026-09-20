@@ -32,6 +32,7 @@ sealed class RepoUiState {
 sealed class AssetDownloadState {
     data object Idle                        : AssetDownloadState()
     data class  Downloading(val percent: Int) : AssetDownloadState()
+    data object Verifying                   : AssetDownloadState()
     data class  Done(val uri: Uri)          : AssetDownloadState()
     data class  Failed(val reason: String)  : AssetDownloadState()
 }
@@ -140,6 +141,7 @@ class RootfsRepoViewModel(application: Application) : AndroidViewModel(applicati
                 downloadStates = downloadStates.toMutableMap().apply {
                     put(url, when (status) {
                         is DownloadStatus.Progress  -> AssetDownloadState.Downloading(status.percent)
+                        is DownloadStatus.Verifying -> AssetDownloadState.Verifying
                         is DownloadStatus.Completed -> AssetDownloadState.Done(status.fileUri)
                         is DownloadStatus.Failed    -> AssetDownloadState.Failed(status.reason)
                     })
@@ -182,6 +184,19 @@ class RootfsRepoViewModel(application: Application) : AndroidViewModel(applicati
 
     fun getCustomRepos(): List<Pair<String, String>> =
         PreferencesManager.getInstance(getApplication()).getCustomRepos()
+
+    fun toggleFavorite(asset: RootfsAsset): Boolean =
+        PreferencesManager.getInstance(getApplication()).toggleRootfsFavorite(asset.downloadUrl)
+
+    fun favoriteUrls(): Set<String> =
+        PreferencesManager.getInstance(getApplication()).getRootfsFavorites()
+
+    var includeCommunityRepos: Boolean
+        get() = PreferencesManager.getInstance(getApplication()).includeCommunityRepos
+        set(value) {
+            PreferencesManager.getInstance(getApplication()).includeCommunityRepos = value
+            load()
+        }
 
     override fun onCleared() {
         super.onCleared()
