@@ -129,6 +129,16 @@ enum class ThemePalette(
         secondaryDark = Color(0xFF48CAE4),
         tertiaryDark = Color(0xFF90E0EF)
     ),
+    /** Signature AetherBox look — deep ink + electric mint (not purple / Material teal). */
+    AETHER(
+        displayName = "Aether",
+        primaryLight = Color(0xFF0B6E4F),
+        secondaryLight = Color(0xFF08A4A7),
+        tertiaryLight = Color(0xFFE8C547),
+        primaryDark = Color(0xFF3DFFB5),
+        secondaryDark = Color(0xFF5CE1E6),
+        tertiaryDark = Color(0xFFF0D35E)
+    ),
     GLACIER(
         displayName = "Glacier",
         primaryLight = Color(0xFF1565C0),
@@ -141,17 +151,17 @@ enum class ThemePalette(
     /** Placeholder colours — real values come from [CustomThemeColors] at runtime. */
     CUSTOM(
         displayName = "Custom",
-        primaryLight = Color(0xFF006D77),
-        secondaryLight = Color(0xFF0A9396),
-        tertiaryLight = Color(0xFF94D2BD),
-        primaryDark = Color(0xFF2EC4B6),
-        secondaryDark = Color(0xFF48CAE4),
-        tertiaryDark = Color(0xFF90E0EF)
+        primaryLight = Color(0xFF0B6E4F),
+        secondaryLight = Color(0xFF08A4A7),
+        tertiaryLight = Color(0xFFE8C547),
+        primaryDark = Color(0xFF3DFFB5),
+        secondaryDark = Color(0xFF5CE1E6),
+        tertiaryDark = Color(0xFFF0D35E)
     );
 
     companion object {
         fun fromName(name: String): ThemePalette =
-            entries.find { it.name == name } ?: NEBULA
+            entries.find { it.name == name } ?: AETHER
 
         /** Presets shown in the picker (excludes CUSTOM — that has its own tile). */
         val presets: List<ThemePalette>

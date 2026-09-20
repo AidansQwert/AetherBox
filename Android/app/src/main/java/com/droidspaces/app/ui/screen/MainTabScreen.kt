@@ -1,70 +1,112 @@
 package com.droidspaces.app.ui.screen
+
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
-import androidx.compose.ui.graphics.Color
-
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import com.droidspaces.app.ui.component.PullToRefreshWrapper
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.BlurOn
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.activity.compose.BackHandler
+import androidx.compose.ui.unit.sp
+import com.droidspaces.app.R
+import com.droidspaces.app.ui.component.AccentColorPicker
+import com.droidspaces.app.ui.component.CustomThemeEditorDialog
 import com.droidspaces.app.ui.component.DroidspacesStatus
 import com.droidspaces.app.ui.component.DroidspacesStatusCard
+import com.droidspaces.app.ui.component.HelpCard
+import com.droidspaces.app.ui.component.PullToRefreshWrapper
 import com.droidspaces.app.ui.component.SystemInfoCard
+import com.droidspaces.app.ui.component.applyCustomTheme
+import com.droidspaces.app.ui.theme.JetBrainsMono
+import com.droidspaces.app.ui.theme.SpaceGrotesk
+import com.droidspaces.app.ui.theme.ThemePalette
+import com.droidspaces.app.ui.theme.rememberThemeState
+import com.droidspaces.app.ui.viewmodel.AppStateViewModel
+import com.droidspaces.app.ui.viewmodel.ContainerViewModel
+import com.droidspaces.app.util.AnimationUtils
+import com.droidspaces.app.util.AppUpdateInfo
+import com.droidspaces.app.util.CuratedRootfsRepos
 import com.droidspaces.app.util.DroidspacesBackendStatus
 import com.droidspaces.app.util.PreferencesManager
 import com.droidspaces.app.util.SystemInfoManager
-import com.droidspaces.app.ui.viewmodel.AppStateViewModel
-import com.droidspaces.app.ui.viewmodel.ContainerViewModel
-import com.droidspaces.app.ui.component.HelpCard
-import com.droidspaces.app.util.AnimationUtils
-import com.droidspaces.app.util.AppUpdateInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import com.droidspaces.app.util.CuratedRootfsRepos
-import com.droidspaces.app.ui.theme.ThemePalette
-import com.droidspaces.app.ui.theme.rememberThemeState
-import com.droidspaces.app.ui.component.AccentColorPicker
-import com.droidspaces.app.ui.component.CustomThemeEditorDialog
-import com.droidspaces.app.ui.component.applyCustomTheme
-import com.droidspaces.app.ui.component.ColorPaletteSwatch
-import com.droidspaces.app.R
 
 private const val EASTER_EGG_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 
@@ -280,30 +322,36 @@ fun MainTabScreen(
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.clickable(
-                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                            interactionSource = remember { MutableInteractionSource() },
                             indication = null
                         ) { expandedContainerName = null }
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.BlurOn,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                                .size(24.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Column {
-                            Text(
-                                text = context.getString(R.string.app_name),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.8.sp
+                        if (selectedTab != TabItem.Home) {
+                            Icon(
+                                imageVector = Icons.Default.BlurOn,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .padding(end = 8.dp)
+                                    .size(22.dp),
+                                tint = MaterialTheme.colorScheme.primary
                             )
+                        }
+                        Column {
+                            if (selectedTab != TabItem.Home) {
+                                Text(
+                                    text = context.getString(R.string.app_name),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontFamily = JetBrainsMono,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.4.sp
+                                )
+                            }
                             Text(
                                 text = context.getString(selectedTab.titleResId),
                                 style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Black
+                                fontFamily = SpaceGrotesk,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
@@ -505,35 +553,82 @@ private fun HomeTabContent(
                 .padding(bottom = 120.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            // Masthead — brand + live counts, not a card stack
-            Column(
+            // Full-bleed brand plane — AetherBox first, not a DroidMaster card stack
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .alpha(mastAlpha)
-                    .padding(horizontal = 20.dp)
-                    .padding(top = 8.dp, bottom = 18.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(bottom = 8.dp)
             ) {
-                Text(
-                    text = context.getString(R.string.app_name),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.primary
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(196.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.08f),
+                                    Color.Transparent
+                                )
+                            )
+                        )
                 )
-                Text(
-                    text = context.getString(R.string.home_command_center),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = context.getString(
-                        R.string.home_spaces_live,
-                        animatedContainers,
-                        animatedRunning
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 22.dp)
+                        .padding(top = 10.dp, bottom = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = context.getString(R.string.home_brand_kicker),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontFamily = JetBrainsMono,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 3.2.sp
+                    )
+                    Text(
+                        text = context.getString(R.string.app_name),
+                        style = MaterialTheme.typography.displaySmall.copy(
+                            fontFamily = SpaceGrotesk,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-1.1).sp,
+                            lineHeight = 40.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = context.getString(R.string.home_command_center),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.88f)
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(999.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
+                        ) {
+                            Text(
+                                text = context.getString(
+                                    R.string.home_spaces_live,
+                                    animatedContainers,
+                                    animatedRunning
+                                ),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontFamily = JetBrainsMono,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
             }
 
             // Bento: status spans full width, then two metric tiles
@@ -649,14 +744,15 @@ private fun HomeTabContent(
                             onClick = onNavigateToRootfsRepo,
                             modifier = Modifier
                                 .width(148.dp)
-                                .height(168.dp),
-                            shape = RoundedCornerShape(22.dp),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.28f))
+                                .height(156.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color.Transparent,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
                         ) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxSize()
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
                                     .padding(16.dp),
                                 verticalArrangement = Arrangement.SpaceBetween
                             ) {
@@ -664,11 +760,12 @@ private fun HomeTabContent(
                                     imageVector = Icons.Default.CloudDownload,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(28.dp)
+                                    modifier = Modifier.size(26.dp)
                                 )
                                 Text(
                                     text = context.getString(R.string.home_rootfs_browse_all),
                                     style = MaterialTheme.typography.titleSmall,
+                                    fontFamily = SpaceGrotesk,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -833,45 +930,62 @@ private fun HomeRootfsRepoCard(
     Surface(
         onClick = onClick,
         modifier = Modifier
-            .width(220.dp)
-            .height(168.dp),
-        shape = RoundedCornerShape(22.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.32f))
+            .width(208.dp)
+            .height(156.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.28f))
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+                .background(
+                    Brush.linearGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.55f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                        )
+                    )
+                )
         ) {
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.25f))
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(start = 16.dp, end = 14.dp, top = 14.dp, bottom = 14.dp),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
                     text = category.uppercase(),
                     style = MaterialTheme.typography.labelSmall,
+                    fontFamily = JetBrainsMono,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    letterSpacing = 0.8.sp
+                    color = MaterialTheme.colorScheme.primary,
+                    letterSpacing = 1.6.sp
                 )
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2
-                )
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
-                    maxLines = 3
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontFamily = SpaceGrotesk,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }
@@ -924,60 +1038,44 @@ private fun HomeMetricTile(
 ) {
     Surface(
         onClick = onClick,
-        modifier = modifier.height(136.dp),
-        shape = RoundedCornerShape(22.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        border = BorderStroke(1.dp, accent.copy(alpha = 0.28f))
+        modifier = modifier.height(128.dp),
+        shape = RoundedCornerShape(18.dp),
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.35f))
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp)
-                    .align(Alignment.TopCenter)
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(accent.copy(alpha = 0.15f), accent, accent.copy(alpha = 0.2f))
-                        )
-                    )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(accent.copy(alpha = 0.06f))
+                .padding(14.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(20.dp)
             )
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(14.dp),
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = accent.copy(alpha = 0.12f)
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = accent,
-                        modifier = Modifier
-                            .padding(8.dp)
-                            .size(18.dp)
-                    )
-                }
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        text = value.toString(),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = hint,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
-                    )
-                }
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = value.toString(),
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontFamily = SpaceGrotesk,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    letterSpacing = (-1).sp
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = hint,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = JetBrainsMono,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
+                )
             }
         }
     }
@@ -1116,22 +1214,22 @@ private fun MainBottomBar(
     val tabs = TabItem.entries
     val selectedIndex = tabs.indexOf(selectedTab)
 
-            // Floating capsule nav — inset from screen edges for a modern dock look.
+            // Floating dock — ink capsule, not Material NavigationBar
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 12.dp)
+            .padding(horizontal = 28.dp, vertical = 14.dp)
     ) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(68.dp),
-            shape = com.droidspaces.app.ui.theme.NavBarShape,
-            color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.92f),
-            border = androidx.compose.foundation.BorderStroke(
+                .height(64.dp),
+            shape = RoundedCornerShape(999.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.94f),
+            border = BorderStroke(
                 1.dp,
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.32f)
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
             ),
             shadowElevation = 0.dp,
             tonalElevation = 0.dp
@@ -1139,15 +1237,15 @@ private fun MainBottomBar(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 6.dp, vertical = 6.dp)
+                    .padding(horizontal = 5.dp, vertical = 5.dp)
             ) {
                 BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                     val tabWidth = maxWidth / tabs.size
-                    val offset by androidx.compose.animation.core.animateDpAsState(
+                    val offset by animateDpAsState(
                         targetValue = tabWidth * selectedIndex,
-                        animationSpec = androidx.compose.animation.core.spring(
-                            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
-                            stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMediumLow
                         ),
                         label = "IndicatorOffset"
                     )
@@ -1157,11 +1255,11 @@ private fun MainBottomBar(
                             .width(tabWidth)
                             .fillMaxHeight()
                             .offset(x = offset),
-                        shape = RoundedCornerShape(22.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
-                        border = androidx.compose.foundation.BorderStroke(
+                        shape = RoundedCornerShape(999.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                        border = BorderStroke(
                             1.dp,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
                         )
                     ) {}
                 }
@@ -1173,9 +1271,9 @@ private fun MainBottomBar(
                 ) {
                     tabs.forEach { tab ->
                         val isSelected = selectedTab == tab
-                        val contentColor by androidx.compose.animation.animateColorAsState(
+                        val contentColor by animateColorAsState(
                             targetValue = if (isSelected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             label = "IconColor"
                         )
 
@@ -1185,7 +1283,7 @@ private fun MainBottomBar(
                                 .weight(1f)
                                 .fillMaxHeight(),
                             color = Color.Transparent,
-                            shape = RoundedCornerShape(22.dp)
+                            shape = RoundedCornerShape(999.dp)
                         ) {
                             Column(
                                 modifier = Modifier.fillMaxSize(),
@@ -1195,16 +1293,19 @@ private fun MainBottomBar(
                                 Icon(
                                     imageVector = tab.icon,
                                     contentDescription = null,
-                                    modifier = Modifier.size(if (isSelected) 24.dp else 22.dp),
+                                    modifier = Modifier.size(if (isSelected) 22.dp else 20.dp),
                                     tint = contentColor
                                 )
-                                Text(
-                                    text = context.getString(tab.titleResId),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = contentColor,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    fontSize = 11.sp
-                                )
+                                if (isSelected) {
+                                    Text(
+                                        text = context.getString(tab.titleResId),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontFamily = SpaceGrotesk,
+                                        color = contentColor,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp
+                                    )
+                                }
                             }
                         }
                     }

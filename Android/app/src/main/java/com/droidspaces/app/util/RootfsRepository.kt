@@ -61,7 +61,10 @@ object RootfsRepository {
     private const val COMMUNITY_ASSET = "rootfs_lxc_community.json"
     private const val COMMUNITY_REPO_NAME = "LXC Community"
     private const val COMMUNITY_REMOTE_URL =
-        "https://raw.githubusercontent.com/Rezalgabteng/Droidspaces-OSS/main/Android/rootfs-feeds/lxc-community.json"
+        "https://raw.githubusercontent.com/AidansQwert/AetherBox/main/Android/rootfs-feeds/lxc-community.json"
+    private const val HOLO_FEED_URL =
+        "https://raw.githubusercontent.com/AidansQwert/AetherBox/main/Android/rootfs-feeds/steamos-arch.json"
+    private const val HOLO_FEED_NAME = "Holo / SteamOS"
     private const val CONNECT_TIMEOUT = 10_000
     private const val READ_TIMEOUT    = 15_000
 
@@ -73,6 +76,7 @@ object RootfsRepository {
             add(async { fetchSingleRepo(OFFICIAL_REPO_URL, OFFICIAL_REPO_NAME) })
             if (prefs.includeCommunityRepos) {
                 add(async { fetchCommunityRepo(context) })
+                add(async { fetchSingleRepo(HOLO_FEED_URL, HOLO_FEED_NAME) })
             }
             customRepos.forEach { (name, url) ->
                 add(async { fetchSingleRepo(url, name) })

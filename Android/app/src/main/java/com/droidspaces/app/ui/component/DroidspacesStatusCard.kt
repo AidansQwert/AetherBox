@@ -132,7 +132,7 @@ fun DroidspacesStatusCard(
         label = "orb"
     )
 
-    val cardShape = RoundedCornerShape(28.dp)
+    val cardShape = RoundedCornerShape(18.dp)
 
     Surface(
         onClick = onClick,

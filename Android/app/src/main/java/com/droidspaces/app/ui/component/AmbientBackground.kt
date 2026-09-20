@@ -21,8 +21,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 
 /**
- * Soft dual-orb ambient wash behind the main chrome.
- * Slow drift keeps depth without fighting DESIGN.md's flat surface language.
+ * Aether mist — diagonal wash + drifting orbs.
+ * Stronger brand atmosphere than a flat Material scaffold.
  */
 @Composable
 fun AmbientBackground(
@@ -36,24 +36,24 @@ fun AmbientBackground(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 14000, easing = LinearEasing),
+            animation = tween(durationMillis = 16000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "drift"
     )
     val pulse by transition.animateFloat(
-        initialValue = 0.88f,
-        targetValue = 1.08f,
+        initialValue = 0.86f,
+        targetValue = 1.12f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 9000, easing = LinearEasing),
+            animation = tween(durationMillis = 11000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "pulse"
     )
 
-    val topOrb = scheme.primary.copy(alpha = 0.14f + 0.04f * pulse)
-    val midOrb = scheme.secondary.copy(alpha = 0.08f)
-    val bottomOrb = scheme.tertiary.copy(alpha = 0.11f + 0.03f * pulse)
+    val topOrb = scheme.primary.copy(alpha = 0.18f + 0.05f * pulse)
+    val midOrb = scheme.secondary.copy(alpha = 0.10f)
+    val bottomOrb = scheme.tertiary.copy(alpha = 0.09f + 0.03f * pulse)
     val base = scheme.background
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -65,33 +65,44 @@ fun AmbientBackground(
                 .fillMaxSize()
                 .background(base)
                 .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            scheme.primary.copy(alpha = 0.10f),
+                            Color.Transparent,
+                            scheme.secondary.copy(alpha = 0.06f)
+                        ),
+                        start = Offset(0f, 0f),
+                        end = Offset(w * 0.95f, h * 0.55f)
+                    )
+                )
+                .background(
                     Brush.radialGradient(
                         colors = listOf(topOrb, Color.Transparent),
                         center = Offset(
-                            w * (0.08f + 0.10f * drift),
-                            h * (0.06f + 0.04f * (1f - drift))
+                            w * (0.12f + 0.12f * drift),
+                            h * (0.04f + 0.05f * (1f - drift))
                         ),
-                        radius = radius * 0.72f * pulse
+                        radius = radius * 0.78f * pulse
                     )
                 )
                 .background(
                     Brush.radialGradient(
                         colors = listOf(midOrb, Color.Transparent),
                         center = Offset(
-                            w * (0.55f - 0.08f * drift),
-                            h * (0.42f + 0.06f * drift)
+                            w * (0.72f - 0.10f * drift),
+                            h * (0.38f + 0.08f * drift)
                         ),
-                        radius = radius * 0.55f
+                        radius = radius * 0.58f
                     )
                 )
                 .background(
                     Brush.radialGradient(
                         colors = listOf(bottomOrb, Color.Transparent),
                         center = Offset(
-                            w * (0.90f - 0.06f * drift),
-                            h * (0.94f - 0.05f * drift)
+                            w * (0.88f - 0.07f * drift),
+                            h * (0.92f - 0.06f * drift)
                         ),
-                        radius = radius * 0.68f * pulse
+                        radius = radius * 0.70f * pulse
                     )
                 ),
             content = content
