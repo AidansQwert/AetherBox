@@ -81,6 +81,7 @@ import com.droidspaces.app.util.Constants
 import com.droidspaces.app.util.ContainerConfigState
 import com.droidspaces.app.util.ContainerInfo
 import com.droidspaces.app.util.GatewayErrors
+import com.droidspaces.app.util.SystemInfoManager
 import com.droidspaces.app.util.ValidationUtils
 
 /**
@@ -517,7 +518,12 @@ fun ContainerConfigForm(
         ToggleCard(
             icon = Icons.Default.Cyclone,
             title = context.getString(R.string.force_cgroupv1),
-            description = context.getString(R.string.force_cgroupv1_description),
+            description = context.getString(
+                if (SystemInfoManager.preferCgroupV1)
+                    R.string.force_cgroupv1_description_legacy
+                else
+                    R.string.force_cgroupv1_description
+            ),
             checked = state.forceCgroupv1,
             onCheckedChange = { clearFocus(); onStateChange(state.copy(forceCgroupv1 = it)) }
         )

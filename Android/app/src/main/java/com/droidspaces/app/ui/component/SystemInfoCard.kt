@@ -86,7 +86,7 @@ fun SystemInfoCard(
             SystemInfoItem(
                 icon = Icons.Default.DeveloperBoard,
                 title = context.getString(R.string.kernel),
-                description = kernelVersion
+                description = "$kernelVersion\n${SystemInfoManager.kernelProfileLabel}"
             )
             SoftDivider()
             SystemInfoItem(

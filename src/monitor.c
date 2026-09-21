@@ -101,7 +101,7 @@ void ds_monitor_run(struct ds_config *cfg, int sync_pipe_write) {
    * If --force-cgroupv1 is set, we skip cgroupns so setup_cgroups()
    * has full rights to create named V1 hierarchies from the host context. */
   int cg_ns_ok = (access("/proc/self/ns/cgroup", F_OK) == 0) &&
-                 (ds_cgroup_host_is_v2() && !cfg->force_cgroupv1);
+                 (!ds_cgroup_prefer_v1(cfg->force_cgroupv1));
   if (cg_ns_ok) {
     /* To get isolation from a cgroup namespace, we must be in a sub-cgroup
      * BEFORE we unshare. If we are in the root '/', the namespace root

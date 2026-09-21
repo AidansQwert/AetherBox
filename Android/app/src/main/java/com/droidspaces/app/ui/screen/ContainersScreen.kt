@@ -63,6 +63,10 @@ import com.droidspaces.app.ui.component.EmptyState
 import com.droidspaces.app.ui.component.ErrorState
 import com.droidspaces.app.ui.component.RootUnavailableState
 import com.droidspaces.app.ui.component.RootfsRepoSheet
+import com.droidspaces.app.ui.theme.HomeLayout
+import com.droidspaces.app.ui.theme.WidthClass
+import com.droidspaces.app.ui.theme.rememberAdaptiveMetrics
+import com.droidspaces.app.ui.theme.rememberHomeLayout
 import com.droidspaces.app.ui.viewmodel.ContainerViewModel
 import com.droidspaces.app.ui.viewmodel.ContainerOperationsViewModel
 import com.droidspaces.app.ui.viewmodel.UninstallState
@@ -98,6 +102,11 @@ fun ContainersScreen(
     val context = LocalContext.current
     val systemStatsViewModel: SystemStatsViewModel = viewModel()
     val prefsManager = PreferencesManager.getInstance(context)
+    val homeLayout = rememberHomeLayout()
+    val adaptive = rememberAdaptiveMetrics()
+    val listSpacing = if (homeLayout == HomeLayout.COMPACT) 10.dp else 16.dp
+    val useTwoCol = adaptive.widthClass != WidthClass.Compact &&
+        (homeLayout == HomeLayout.GALLERY || homeLayout == HomeLayout.DASHBOARD)
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -247,99 +256,139 @@ fun ContainersScreen(
                                 )
                                 .padding(horizontal = 16.dp),
                             contentPadding = PaddingValues(top = 8.dp, bottom = 120.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            verticalArrangement = Arrangement.spacedBy(listSpacing)
                         ) {
-                            items(filteredContainers, key = { it.name }) { container ->
-                                val isRunning = opsViewModel.runningOperationContainer == container.name
-                                var appeared by remember(container.name) { mutableStateOf(false) }
-                                LaunchedEffect(container.name) { appeared = true }
-                                val enterAlpha by animateFloatAsState(
-                                    targetValue = if (appeared) 1f else 0f,
-                                    animationSpec = AnimationUtils.cardFadeSpec(),
-                                    label = "cardEnterAlpha"
-                                )
-
-                                ContainerCard(
-                                    modifier = Modifier
-                                        .alpha(enterAlpha)
-                                        .animateItemPlacement(AnimationUtils.mediumSpec()),
-                                    container = container,
-                                    isOperationRunning = isRunning,
-                                    isExpanded = expandedContainerName == container.name,
-                                    isPinned = container.name in pinnedNames,
-                                    actions = ContainerCardActions(
-                                    onToggleExpand = {
-                                        onExpandedContainerNameChange(if (expandedContainerName == container.name) null else container.name)
-                                    },
-                                     onShowLogs = {
-                                        opsViewModel.showLogViewerFor = container.name
-                                    },
-                                    onTogglePin = {
-                                        prefsManager.togglePinnedContainer(container.name)
-                                        pinTick++
-                                    },
-                                    onStart = {
-                                        scope.launch {
-                                            opsViewModel.executeOperation(
-                                                container, "start",
-                                                onRefresh = { containerViewModel.refresh() },
-                                                onClearUsage = { systemStatsViewModel.clearContainerUsage(it) },
-                                                onFailureSnackbar = { msg -> scope.launch { snackbarHostState.showSnackbar(msg, duration = SnackbarDuration.Long) } }
-                                            )
+                            if (useTwoCol) {
+                                items(
+                                    filteredContainers.chunked(2),
+                                    key = { row -> row.joinToString("|") { it.name } }
+                                ) { row ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        row.forEach { container ->
+                                            Box(modifier = Modifier.weight(1f)) {
+                                                SpacesContainerCard(
+                                                    container = container,
+                                                    isRunning = opsViewModel.runningOperationContainer == container.name,
+                                                    isExpanded = expandedContainerName == container.name,
+                                                    isPinned = container.name in pinnedNames,
+                                                    onExpandedChange = onExpandedContainerNameChange,
+                                                    onShowLogs = { opsViewModel.showLogViewerFor = container.name },
+                                                    onTogglePin = {
+                                                        prefsManager.togglePinnedContainer(container.name)
+                                                        pinTick++
+                                                    },
+                                                    onOp = { action ->
+                                                        scope.launch {
+                                                            opsViewModel.executeOperation(
+                                                                container, action,
+                                                                onRefresh = { containerViewModel.refresh() },
+                                                                onClearUsage = { systemStatsViewModel.clearContainerUsage(it) },
+                                                                onFailureSnackbar = { msg ->
+                                                                    scope.launch {
+                                                                        snackbarHostState.showSnackbar(
+                                                                            msg,
+                                                                            duration = SnackbarDuration.Long
+                                                                        )
+                                                                    }
+                                                                }
+                                                            )
+                                                        }
+                                                    },
+                                                    onEdit = {
+                                                        onExpandedContainerNameChange(null)
+                                                        onNavigateToEditContainer(container.name)
+                                                    },
+                                                    onEnter = { onNavigateToContainerDetails(container.name) },
+                                                    onUninstall = {
+                                                        onExpandedContainerNameChange(null)
+                                                        showUninstallConfirmation = container
+                                                    },
+                                                    onMigrate = {
+                                                        onExpandedContainerNameChange(null)
+                                                        pendingSparseOperation = SparseOperation.Migrate(container)
+                                                    },
+                                                    onResize = {
+                                                        onExpandedContainerNameChange(null)
+                                                        pendingSparseOperation = SparseOperation.Resize(container)
+                                                    },
+                                                    onExport = {
+                                                        onExpandedContainerNameChange(null)
+                                                        val timestamp = java.text.SimpleDateFormat(
+                                                            "yyyyMMdd_HHmmss",
+                                                            java.util.Locale.US
+                                                        ).format(java.util.Date())
+                                                        pendingExportContainer = container
+                                                        exportFileLauncher.launch("${container.name}_${timestamp}.tar.gz")
+                                                    }
+                                                )
+                                            }
                                         }
-                                    },
-                                    onStop = {
-                                        scope.launch {
-                                            opsViewModel.executeOperation(
-                                                container, "stop",
-                                                onRefresh = { containerViewModel.refresh() },
-                                                onClearUsage = { systemStatsViewModel.clearContainerUsage(it) },
-                                                onFailureSnackbar = { msg -> scope.launch { snackbarHostState.showSnackbar(msg, duration = SnackbarDuration.Long) } }
-                                            )
+                                        if (row.size == 1) {
+                                            Spacer(modifier = Modifier.weight(1f))
                                         }
-                                    },
-                                    onRestart = {
-                                        scope.launch {
-                                            opsViewModel.executeOperation(
-                                                container, "restart",
-                                                onRefresh = { containerViewModel.refresh() },
-                                                onClearUsage = { systemStatsViewModel.clearContainerUsage(it) },
-                                                onFailureSnackbar = { msg -> scope.launch { snackbarHostState.showSnackbar(msg, duration = SnackbarDuration.Long) } }
-                                            )
-                                        }
-                                    },
-                                    onEdit = {
-                                        onExpandedContainerNameChange(null)
-                                        onNavigateToEditContainer(container.name)
-                                    },
-                                    onEnter = {
-                                        onNavigateToContainerDetails(container.name)
-                                    },
-                                    onUninstall = {
-                                        onExpandedContainerNameChange(null)
-                                        showUninstallConfirmation = container
-                                    },
-                                    onMigrate = {
-                                        onExpandedContainerNameChange(null)
-                                        pendingSparseOperation = SparseOperation.Migrate(container)
-                                    },
-                                    onResize = {
-                                        onExpandedContainerNameChange(null)
-                                        pendingSparseOperation = SparseOperation.Resize(container)
-                                    },
-                                    onExport = {
-                                        onExpandedContainerNameChange(null)
-                                        // Generate filename: <name>_yyyyMMdd_HHmmss.tar.gz
-                                        val timestamp = java.text.SimpleDateFormat(
-                                            "yyyyMMdd_HHmmss",
-                                            java.util.Locale.US
-                                        ).format(java.util.Date())
-                                        val fileName = "${container.name}_${timestamp}.tar.gz"
-                                        pendingExportContainer = container
-                                        exportFileLauncher.launch(fileName)
                                     }
+                                }
+                            } else {
+                                items(filteredContainers, key = { it.name }) { container ->
+                                    SpacesContainerCard(
+                                        container = container,
+                                        isRunning = opsViewModel.runningOperationContainer == container.name,
+                                        isExpanded = expandedContainerName == container.name,
+                                        isPinned = container.name in pinnedNames,
+                                        onExpandedChange = onExpandedContainerNameChange,
+                                        onShowLogs = { opsViewModel.showLogViewerFor = container.name },
+                                        onTogglePin = {
+                                            prefsManager.togglePinnedContainer(container.name)
+                                            pinTick++
+                                        },
+                                        onOp = { action ->
+                                            scope.launch {
+                                                opsViewModel.executeOperation(
+                                                    container, action,
+                                                    onRefresh = { containerViewModel.refresh() },
+                                                    onClearUsage = { systemStatsViewModel.clearContainerUsage(it) },
+                                                    onFailureSnackbar = { msg ->
+                                                        scope.launch {
+                                                            snackbarHostState.showSnackbar(
+                                                                msg,
+                                                                duration = SnackbarDuration.Long
+                                                            )
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                        },
+                                        onEdit = {
+                                            onExpandedContainerNameChange(null)
+                                            onNavigateToEditContainer(container.name)
+                                        },
+                                        onEnter = { onNavigateToContainerDetails(container.name) },
+                                        onUninstall = {
+                                            onExpandedContainerNameChange(null)
+                                            showUninstallConfirmation = container
+                                        },
+                                        onMigrate = {
+                                            onExpandedContainerNameChange(null)
+                                            pendingSparseOperation = SparseOperation.Migrate(container)
+                                        },
+                                        onResize = {
+                                            onExpandedContainerNameChange(null)
+                                            pendingSparseOperation = SparseOperation.Resize(container)
+                                        },
+                                        onExport = {
+                                            onExpandedContainerNameChange(null)
+                                            val timestamp = java.text.SimpleDateFormat(
+                                                "yyyyMMdd_HHmmss",
+                                                java.util.Locale.US
+                                            ).format(java.util.Date())
+                                            pendingExportContainer = container
+                                            exportFileLauncher.launch("${container.name}_${timestamp}.tar.gz")
+                                        }
                                     )
-                                )
+                                }
                             }
                         }
                     }
@@ -773,4 +822,54 @@ private fun ContainerFilterChipsRow(
             )
         }
     }
+}
+
+@Composable
+private fun SpacesContainerCard(
+    container: ContainerInfo,
+    isRunning: Boolean,
+    isExpanded: Boolean,
+    isPinned: Boolean,
+    onExpandedChange: (String?) -> Unit,
+    onShowLogs: () -> Unit,
+    onTogglePin: () -> Unit,
+    onOp: (String) -> Unit,
+    onEdit: () -> Unit,
+    onEnter: () -> Unit,
+    onUninstall: () -> Unit,
+    onMigrate: () -> Unit,
+    onResize: () -> Unit,
+    onExport: () -> Unit,
+) {
+    var appeared by remember(container.name) { mutableStateOf(false) }
+    LaunchedEffect(container.name) { appeared = true }
+    val enterAlpha by animateFloatAsState(
+        targetValue = if (appeared) 1f else 0f,
+        animationSpec = AnimationUtils.cardFadeSpec(),
+        label = "cardEnterAlpha"
+    )
+
+    ContainerCard(
+        modifier = Modifier.alpha(enterAlpha),
+        container = container,
+        isOperationRunning = isRunning,
+        isExpanded = isExpanded,
+        isPinned = isPinned,
+        actions = ContainerCardActions(
+            onToggleExpand = {
+                onExpandedChange(if (isExpanded) null else container.name)
+            },
+            onShowLogs = onShowLogs,
+            onTogglePin = onTogglePin,
+            onStart = { onOp("start") },
+            onStop = { onOp("stop") },
+            onRestart = { onOp("restart") },
+            onEdit = onEdit,
+            onEnter = onEnter,
+            onUninstall = onUninstall,
+            onMigrate = onMigrate,
+            onResize = onResize,
+            onExport = onExport
+        )
+    )
 }

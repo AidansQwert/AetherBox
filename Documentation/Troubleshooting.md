@@ -62,6 +62,8 @@ Legacy kernels lack modern system calls (e.g., `clone3`, `openat2`, or newer `bp
 
 **Solution:** This is handled automatically by Droidspaces' Adaptive Seccomp Shield on kernels below 5.0. The shield intercepts keyring-related syscalls and returns `ENOSYS`, causing systemd to fall back to the existing session keyring.
 
+As of **AetherBox / Droidspaces 1.4.0**, kernels where cgroup2 mounts succeed but controllers are incomplete (typical pre-5.2 / Android 4.14) also **auto-select Cgroup V1** and can apply memory/CPU/pids limits on the v1 hierarchy — you no longer need to manually enable Force Cgroup V1 for a stable boot.
+
 If you're still seeing this error:
 - Verify your Droidspaces binary is up to date (v4.2.4+)
 - Run `droidspaces check` to verify seccomp support

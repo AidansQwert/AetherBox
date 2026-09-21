@@ -295,6 +295,7 @@
     <string name="reorder_handle">Drag to reorder</string>
     <string name="force_cgroupv1">Force Cgroup V1</string>
     <string name="force_cgroupv1_description">Force use of legacy Cgroup V1 hierarchy</string>
+    <string name="force_cgroupv1_description_legacy">On by default for this kernel (pre-5.2). Cgroup2 mounts succeed but controllers are incomplete — V1 keeps systemd stable.</string>
 
     <!-- Config Categories and Network Mode -->
     <string name="cat_networking">Networking</string>
@@ -772,4 +773,13 @@
     <string name="home_rootfs_pinned_chip">Pinned</string>
     <string name="home_rootfs_pinned_toast">Pinned to Home</string>
     <string name="home_rootfs_unpinned_toast">Unpinned from Home</string>
+    <string name="home_pinned_spaces_title">Pinned spaces</string>
+    <string name="home_pinned_spaces_subtitle">Pin from the Spaces tab · tap to open</string>
+    <string name="home_pinned_spaces_empty">No pinned spaces yet — long-press pin on a container in Spaces</string>
+    <string name="home_pinned_space_running">%1$s · live</string>
+    <string name="panel_live_title">Live panel</string>
+    <string name="panel_running_count">%1$d container(s) running</string>
+    <string name="panel_thermal_title">Host thermal</string>
+    <string name="panel_thermal_status">Throttle</string>
+    <string name="panel_thermal_battery">Temp</string>
 </resources>

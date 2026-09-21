@@ -353,6 +353,22 @@ int check_requirements_detailed(void) {
   print_ds_check("Cgroup v2 support", "Unified Control Group hierarchy support",
                  grep_file("/proc/filesystems", "cgroup2"), "OPT");
 
+  {
+    int major = 0, minor = 0;
+    get_kernel_version(&major, &minor);
+    int usable = ds_cgroup_v2_usable();
+    char cg_desc[160];
+    snprintf(cg_desc, sizeof(cg_desc),
+             "Kernel %d.%d — %s (auto V1 when not usable, like pre-5.2)",
+             major, minor,
+             usable ? "cgroup2 controllers usable" : "cgroup2 not usable");
+    print_ds_check("Cgroup2 usable for systemd", cg_desc, usable, "OPT");
+    print_ds_check(
+        "Legacy kernel profile",
+        "Kernels below 5.2 auto-use Cgroup V1 + keyring seccomp shield",
+        !usable || major < 5, "OPT");
+  }
+
   print_ds_check("Cgroup namespace", "Control Group namespace isolation",
                  check_ns(CLONE_NEWCGROUP, "cgroup"), "OPT");
 

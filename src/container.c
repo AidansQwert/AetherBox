@@ -1808,8 +1808,9 @@ int show_info(struct ds_config *cfg, int trust_cfg_pid) {
     }
 
     /* 12. Cgroup v1 */
-    if (cfg->force_cgroupv1) {
-      printf("  " C_RED "Force Cgroup V1:" C_RESET " yes\n");
+    if (cfg->force_cgroupv1 || !ds_cgroup_v2_usable()) {
+      printf("  " C_RED "Cgroup V1:" C_RESET " %s\n",
+             cfg->force_cgroupv1 ? "forced" : "auto (legacy kernel)");
       feat_count++;
     }
 
@@ -1876,12 +1877,9 @@ int show_info(struct ds_config *cfg, int trust_cfg_pid) {
     }
   }
 
-  /* Resource limits & live usage. Only show if Cgroup V2 is active,
-   * since we skip resource management entirely on V1. We also skip this
-   * when called during the boot sequence (!trust_cfg_pid). */
+  /* Resource limits & live usage (V2 or V1 with limits applied). */
   if (!trust_cfg_pid &&
-      (cfg->memory_limit || cfg->cpu_quota || cfg->pids_limit) &&
-      !cfg->force_cgroupv1 && ds_cgroup_host_is_v2()) {
+      (cfg->memory_limit || cfg->cpu_quota || cfg->pids_limit)) {
     long long mu = -1, cu = -1, pu = -1;
     ds_cgroup_get_usage(cfg, &mu, &cu, &pu);
     printf("\n" C_GREEN "Resources:" C_RESET "\n");

@@ -65,7 +65,7 @@
 /* Constants */
 
 #define DS_PROJECT_NAME "Droidspaces"
-#define DS_VERSION "1.3.9"
+#define DS_VERSION "1.4.0"
 #define DS_MIN_KERNEL_MAJOR 3
 #define DS_MIN_KERNEL_MINOR 10
 #define DS_RECOMMENDED_KERNEL_MAJOR 4
@@ -634,6 +634,8 @@ int is_mountpoint(const char *path);
 /* cgroup.c */
 
 int ds_cgroup_v2_usable(void);
+/* 1 = use v1 hierarchy (forced, or cgroup2 controllers not usable e.g. <5.2). */
+int ds_cgroup_prefer_v1(int force_cgroupv1);
 int ds_cgroup_kernel_supports_v2(void);
 int ds_cgroup_host_is_v2(void);
 int setup_cgroups(int is_systemd, int force_cgroupv1);

@@ -28,6 +28,26 @@ int ds_cgroup_v2_usable(void) {
   return (major > 5 || (major == 5 && minor >= 2));
 }
 
+/* Prefer V1 when the user forced it, or when cgroup2 mounts succeed but
+ * controllers are incomplete (typical Android 4.14 / pre-5.2). */
+int ds_cgroup_prefer_v1(int force_cgroupv1) {
+  if (force_cgroupv1)
+    return 1;
+  if (!ds_cgroup_v2_usable()) {
+    static int logged;
+    if (!logged) {
+      int major = 0, minor = 0;
+      get_kernel_version(&major, &minor);
+      ds_log("[CGROUP] Kernel %d.%d: cgroup2 controllers not usable; "
+             "using V1 hierarchy (auto)",
+             major, minor);
+      logged = 1;
+    }
+    return 1;
+  }
+  return 0;
+}
+
 /* Scan mountinfo for any host cgroup2 mount (e.g. /dev/cg2_bpf on Android).
  * Returns 1 and fills 'buf' if found. */
 static int find_host_cgroup2_mount(char *buf, size_t size) {
@@ -89,7 +109,8 @@ int ds_cgroup_kernel_supports_v2(void) {
  * systemd needs it at /sys/fs/cgroup. Sequence: mkdir -> tmpfs anchor ->
  * cgroup2. */
 void ds_cgroup_host_bootstrap(int force_cgroupv1) {
-  if (force_cgroupv1)
+  /* Do not mount an empty/unusable cgroup2 on legacy kernels. */
+  if (ds_cgroup_prefer_v1(force_cgroupv1))
     return;
 
   /* Already done */
@@ -190,6 +211,7 @@ static void mount_v1_controllers(void) {
 }
 
 int setup_cgroups(int is_systemd, int force_cgroupv1) {
+  int prefer_v1 = ds_cgroup_prefer_v1(force_cgroupv1);
   ds_cgroup_host_bootstrap(force_cgroupv1);
 
   if (access("sys/fs/cgroup", F_OK) != 0) {
@@ -202,7 +224,8 @@ int setup_cgroups(int is_systemd, int force_cgroupv1) {
               MS_NOSUID | MS_NODEV | MS_NOEXEC, "mode=755,size=16M") < 0)
     return -1;
 
-  int v2_active = ds_cgroup_host_is_v2() && !force_cgroupv1;
+  /* Prefer usable V2 only; never mount hollow cgroup2 on pre-5.2 kernels. */
+  int v2_active = !prefer_v1;
   int systemd_setup_done = 0;
 
   if (v2_active) {
@@ -213,9 +236,13 @@ int setup_cgroups(int is_systemd, int force_cgroupv1) {
       systemd_setup_done = 1;
     } else {
       ds_error("Failed to mount cgroup2: %s", strerror(errno));
+      /* Fall back to V1 rather than leaving systemd without a hierarchy. */
+      v2_active = 0;
+      mount_v1_controllers();
+      systemd_setup_done = 1;
     }
   } else {
-    /* V1 PATH (force_cgroupv1): Synthesize fresh mounts for all controllers. */
+    /* V1 PATH (forced or auto on legacy kernels). */
     mount_v1_controllers();
     systemd_setup_done = 1; /* handled via systemd named cgroup below */
   }
@@ -541,12 +568,14 @@ static int ds_host_supports_v2_cached = -1;
 
 void print_cgroup_status(struct ds_config *cfg) {
   int limits_set = (cfg->memory_limit || cfg->cpu_quota || cfg->pids_limit);
+  int prefer_v1 = ds_cgroup_prefer_v1(cfg->force_cgroupv1);
 
-  if (cfg->force_cgroupv1) {
-    ds_warn("Using legacy Cgroup V1 hierarchy (forced by --force-cgroupv1)");
-    if (limits_set) {
-      ds_warn("Resource limits (--memory/--cpus/--pids-limit) require "
-              "cgroup v2 and will not be applied for this container.");
+  if (prefer_v1) {
+    if (cfg->force_cgroupv1) {
+      ds_warn("Using legacy Cgroup V1 hierarchy (forced by --force-cgroupv1)");
+    } else {
+      ds_warn("Using legacy Cgroup V1 hierarchy (auto: cgroup2 controllers "
+              "not usable on this kernel)");
     }
     return;
   }
@@ -556,10 +585,9 @@ void print_cgroup_status(struct ds_config *cfg) {
 
   if (!ds_host_supports_v2_cached) {
     ds_warn("Host does not support Cgroup V2 (falling back to legacy V1)");
-    if (limits_set) {
-      ds_warn("[CGROUP] Resource limits (--memory/--cpus/--pids-limit) require "
-              "cgroup v2 and will not be applied on this host.");
-    }
+  } else if (limits_set) {
+    /* V2 path with limits — no warning needed */
+    (void)limits_set;
   }
 }
 
@@ -609,19 +637,38 @@ static long long parse_cgroup_ll(const char *buf) {
   return v;
 }
 
+/* Ensure /sys/fs/cgroup/<ctrl>/droidspaces/<name> exists and return 0.
+ * Writes the current pid into cgroup.procs (or tasks) when possible. */
+static int ensure_v1_leaf(const char *ctrl, const char *safe_name, char *out,
+                          size_t out_sz) {
+  char root[PATH_MAX];
+  snprintf(root, sizeof(root), "/sys/fs/cgroup/%s", ctrl);
+  if (access(root, F_OK) != 0)
+    return -1;
+
+  char parent[PATH_MAX];
+  snprintf(parent, sizeof(parent), "%s/droidspaces", root);
+  mkdir_p(parent, 0755);
+
+  snprintf(out, out_sz, "%s/droidspaces/%s", root, safe_name);
+  if (mkdir_p(out, 0755) < 0 && access(out, F_OK) != 0)
+    return -1;
+
+  char procs[PATH_MAX + 32];
+  snprintf(procs, sizeof(procs), "%s/cgroup.procs", out);
+  if (access(procs, F_OK) != 0)
+    snprintf(procs, sizeof(procs), "%s/tasks", out);
+  FILE *f = fopen(procs, "we");
+  if (f) {
+    fprintf(f, "%d\n", getpid());
+    fclose(f);
+  }
+  return 0;
+}
+
 int ds_cgroup_apply_limits(struct ds_config *cfg) {
   if (!cfg->memory_limit && !cfg->cpu_quota && !cfg->pids_limit)
     return 0;
-
-  /* Resource limits require cgroup v2. v1 hierarchies are often pre-claimed
-   * by the host systemd and cannot be reliably delegated. Skip with a
-   * warning when --force-cgroupv1 is active or the host has no v2 mount. */
-  if (cfg->force_cgroupv1 || !ds_cgroup_host_is_v2()) {
-    cfg->memory_limit = 0;
-    cfg->cpu_quota = 0;
-    cfg->pids_limit = 0;
-    return 0;
-  }
 
   char safe_name[256];
   sanitize_container_name(cfg->container_name, safe_name, sizeof(safe_name));
@@ -629,7 +676,58 @@ int ds_cgroup_apply_limits(struct ds_config *cfg) {
   char cg[PATH_MAX - 64];
   char path[PATH_MAX + 64], val[64];
   int err = 0;
+  int prefer_v1 = ds_cgroup_prefer_v1(cfg->force_cgroupv1);
 
+  /* --- Cgroup V1 path (forced or auto on pre-5.2 kernels) --- */
+  if (prefer_v1) {
+    if (cfg->memory_limit) {
+      if (ensure_v1_leaf("memory", safe_name, cg, sizeof(cg)) == 0) {
+        snprintf(path, sizeof(path), "%s/memory.limit_in_bytes", cg);
+        snprintf(val, sizeof(val), "%lld", cfg->memory_limit);
+        if (write_file(path, val) < 0) {
+          ds_warn("[CGROUP] memory.limit_in_bytes: %s", strerror(errno));
+          err++;
+        }
+      } else {
+        ds_warn("[CGROUP] v1 'memory' controller not available, limit skipped.");
+        cfg->memory_limit = 0;
+      }
+    }
+    if (cfg->cpu_quota) {
+      if (ensure_v1_leaf("cpu", safe_name, cg, sizeof(cg)) == 0) {
+        long long period = cfg->cpu_period > 0 ? cfg->cpu_period : 100000;
+        snprintf(path, sizeof(path), "%s/cpu.cfs_period_us", cg);
+        snprintf(val, sizeof(val), "%lld", period);
+        if (write_file(path, val) < 0)
+          ds_warn("[CGROUP] cpu.cfs_period_us: %s", strerror(errno));
+        snprintf(path, sizeof(path), "%s/cpu.cfs_quota_us", cg);
+        snprintf(val, sizeof(val), "%lld", cfg->cpu_quota);
+        if (write_file(path, val) < 0) {
+          ds_warn("[CGROUP] cpu.cfs_quota_us: %s", strerror(errno));
+          err++;
+        }
+      } else {
+        ds_warn("[CGROUP] v1 'cpu' controller not available, limit skipped.");
+        cfg->cpu_quota = 0;
+      }
+    }
+    if (cfg->pids_limit) {
+      if (ensure_v1_leaf("pids", safe_name, cg, sizeof(cg)) == 0) {
+        snprintf(path, sizeof(path), "%s/pids.max", cg);
+        snprintf(val, sizeof(val), "%lld", cfg->pids_limit);
+        if (write_file(path, val) < 0) {
+          ds_warn("[CGROUP] pids.max: %s", strerror(errno));
+          err++;
+        }
+      } else {
+        ds_warn("[CGROUP] v1 'pids' controller not available, limit skipped.");
+        cfg->pids_limit = 0;
+      }
+    }
+    return err ? -1 : 0;
+  }
+
+  /* --- Cgroup V2 path --- */
   snprintf(cg, sizeof(cg), "/sys/fs/cgroup/droidspaces/%s", safe_name);
   if (access(cg, F_OK) != 0) {
     ds_warn("[CGROUP] Container cgroup not found, limits skipped.");
@@ -695,7 +793,7 @@ int ds_cgroup_get_usage(struct ds_config *cfg, long long *mem,
   char safe_name[256];
   sanitize_container_name(cfg->container_name, safe_name, sizeof(safe_name));
 
-  int v2 = ds_cgroup_host_is_v2();
+  int v2 = !ds_cgroup_prefer_v1(cfg->force_cgroupv1);
   /* Keep cg strictly within PATH_MAX-64 so the suffix appended
    * into path never overflows the PATH_MAX+64 path buffer. */
   char cg[PATH_MAX - 64];
@@ -722,6 +820,30 @@ int ds_cgroup_get_usage(struct ds_config *cfg, long long *mem,
     }
     if (pids) {
       snprintf(path, sizeof(path), "%s/pids.current", cg);
+      if (read_file(path, buf, sizeof(buf)) > 0)
+        *pids = parse_cgroup_ll(buf);
+    }
+  } else {
+    /* V1 usage from per-controller leaf dirs. */
+    if (mem) {
+      snprintf(path, sizeof(path),
+               "/sys/fs/cgroup/memory/droidspaces/%s/memory.usage_in_bytes",
+               safe_name);
+      if (read_file(path, buf, sizeof(buf)) > 0)
+        *mem = parse_cgroup_ll(buf);
+    }
+    if (cpu_us) {
+      snprintf(path, sizeof(path),
+               "/sys/fs/cgroup/cpu/droidspaces/%s/cpuacct.usage", safe_name);
+      if (read_file(path, buf, sizeof(buf)) > 0) {
+        long long ns = parse_cgroup_ll(buf);
+        if (ns >= 0)
+          *cpu_us = ns / 1000; /* ns → µs */
+      }
+    }
+    if (pids) {
+      snprintf(path, sizeof(path),
+               "/sys/fs/cgroup/pids/droidspaces/%s/pids.current", safe_name);
       if (read_file(path, buf, sizeof(buf)) > 0)
         *pids = parse_cgroup_ll(buf);
     }

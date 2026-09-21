@@ -48,6 +48,29 @@ object SystemInfoManager {
     val kernelVersion: String get() = unameCache.release
     val architecture: String get() = unameCache.machine
 
+    /** Major from uname release (e.g. 4 from "4.14.190-perf+"). */
+    val kernelMajor: Int by lazy { parseKernelPart(0) }
+
+    /** Minor from uname release (e.g. 14 from "4.14.190-perf+"). */
+    val kernelMinor: Int by lazy { parseKernelPart(1) }
+
+    /**
+     * True when cgroup2 controllers are not usable for systemd (pre-5.2),
+     * matching native ds_cgroup_v2_usable / auto V1 path.
+     */
+    val preferCgroupV1: Boolean
+        get() = kernelMajor < 5 || (kernelMajor == 5 && kernelMinor < 2)
+
+    val kernelProfileLabel: String
+        get() = if (preferCgroupV1) "legacy · Cgroup V1 (auto)" else "mainline · Cgroup V2"
+
+    private fun parseKernelPart(index: Int): Int {
+        val raw = unameCache.release
+        val num = raw.takeWhile { it.isDigit() || it == '.' }
+        val parts = num.split('.')
+        return parts.getOrNull(index)?.toIntOrNull() ?: 0
+    }
+
     // Cache androidVersion string (computed once, reused forever - saves ~50-100ns per access)
     private val androidVersionCache by lazy {
         "${Build.VERSION.RELEASE} (${Build.VERSION.SDK_INT})"

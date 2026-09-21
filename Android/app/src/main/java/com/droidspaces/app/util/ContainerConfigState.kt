@@ -33,7 +33,7 @@ data class ContainerConfigState(
     val runAtBoot: Boolean = false,
     val customInit: String = "",
     val staticNatIp: String = "",
-    val forceCgroupv1: Boolean = false,
+    val forceCgroupv1: Boolean = SystemInfoManager.preferCgroupV1,
     val privileged: String = "",
     val envFileContent: String = "",
     val upstreamInterfaces: List<String> = emptyList(),

@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -58,9 +60,11 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -460,6 +464,7 @@ fun MainTabScreen(
                                 onNavigateToSettings = onNavigateToSettings,
                                 onNavigateToContainerDetails = onNavigateToContainerDetails,
                                 knownContainerNames = containerViewModel.containerList.map { it.name },
+                                containerRunningMap = containerViewModel.containerList.associate { it.name to it.isRunning },
                                 containerCount = containerCount,
                                 runningCount = runningCount,
                                 onRefresh = { performRefresh(TabItem.Home) },
@@ -536,6 +541,7 @@ private fun HomeTabContent(
     onNavigateToSettings: () -> Unit,
     onNavigateToContainerDetails: (String) -> Unit,
     knownContainerNames: List<String>,
+    containerRunningMap: Map<String, Boolean>,
     containerCount: Int,
     runningCount: Int,
     onRefresh: suspend () -> Unit,
@@ -818,6 +824,15 @@ private fun HomeTabContent(
                                     onNavigateToContainers = onNavigateToContainers,
                                     onNavigateToControlPanel = onNavigateToControlPanel
                                 )
+                                if (isRootAvailable && homeLayout != HomeLayout.FOCUS) {
+                                    HomePinnedSpacesBlock(
+                                        pinnedNames = prefsManager.getPinnedContainers()
+                                            .filter { it in knownContainerNames },
+                                        runningMap = containerRunningMap,
+                                        onOpen = onNavigateToContainerDetails,
+                                        onBrowse = onNavigateToContainers
+                                    )
+                                }
                             }
                             Column(
                                 modifier = Modifier.weight(1f),
@@ -861,6 +876,15 @@ private fun HomeTabContent(
                             onNavigateToContainers = onNavigateToContainers,
                             onNavigateToControlPanel = onNavigateToControlPanel
                         )
+                        if (isRootAvailable && homeLayout != HomeLayout.FOCUS) {
+                            HomePinnedSpacesBlock(
+                                pinnedNames = prefsManager.getPinnedContainers()
+                                    .filter { it in knownContainerNames },
+                                runningMap = containerRunningMap,
+                                onOpen = onNavigateToContainerDetails,
+                                onBrowse = onNavigateToContainers
+                            )
+                        }
                         HomeRootfsBlock(
                             homeLayout = homeLayout,
                             compactMetrics = compactMetrics,
@@ -984,6 +1008,68 @@ private fun HomeStatusAndMetricsBlock(
                         icon = Icons.Default.PlayCircle,
                         accent = MaterialTheme.colorScheme.secondary,
                         onClick = onNavigateToControlPanel
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun HomePinnedSpacesBlock(
+    pinnedNames: List<String>,
+    runningMap: Map<String, Boolean>,
+    onOpen: (String) -> Unit,
+    onBrowse: () -> Unit
+) {
+    val context = LocalContext.current
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            text = context.getString(R.string.home_pinned_spaces_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        Text(
+            text = context.getString(R.string.home_pinned_spaces_subtitle),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (pinnedNames.isEmpty()) {
+            Text(
+                text = context.getString(R.string.home_pinned_spaces_empty),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onBrowse)
+                    .padding(vertical = 4.dp)
+            )
+        } else {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                pinnedNames.forEach { name ->
+                    val running = runningMap[name] == true
+                    AssistChip(
+                        onClick = { onOpen(name) },
+                        label = {
+                            Text(
+                                text = if (running) {
+                                    context.getString(R.string.home_pinned_space_running, name)
+                                } else {
+                                    name
+                                }
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = if (running) Icons.Default.PlayCircle else Icons.Default.PushPin,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     )
                 }
             }

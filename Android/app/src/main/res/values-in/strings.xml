@@ -179,6 +179,7 @@
     <string name="run_at_boot_description">Jalankan kontainer saat sistem dinyalakan</string>
     <string name="force_cgroupv1">Paksa Cgroup V1</string>
     <string name="force_cgroupv1_description">Memaksa penggunaan hierarki Cgroup V1 versi lama</string>
+    <string name="force_cgroupv1_description_legacy">Aktif otomatis di kernel ini (pra-5.2). Mount cgroup2 bisa sukses tapi controller tidak lengkap — V1 menjaga systemd stabil.</string>
     <string name="cat_networking">Jaringan</string>
     <string name="cat_integration">Integrasi &amp; Hardware</string>
     <string name="cat_security">Keamanan &amp; Boot</string>
@@ -623,4 +624,13 @@
     <string name="updates_section">Pembaruan</string>
     <string name="check_app_updates">Cek pembaruan aplikasi</string>
     <string name="check_app_updates_description">Cari rilis baru di GitHub saat aplikasi dibuka</string>
+    <string name="home_pinned_spaces_title">Space tersemat</string>
+    <string name="home_pinned_spaces_subtitle">Sematkan dari tab Spaces · ketuk untuk buka</string>
+    <string name="home_pinned_spaces_empty">Belum ada space tersemat — long-press pin di kontainer di Spaces</string>
+    <string name="home_pinned_space_running">%1$s · hidup</string>
+    <string name="panel_live_title">Panel live</string>
+    <string name="panel_running_count">%1$d kontainer berjalan</string>
+    <string name="panel_thermal_title">Termal host</string>
+    <string name="panel_thermal_status">Throttle</string>
+    <string name="panel_thermal_battery">Suhu</string>
 </resources>
