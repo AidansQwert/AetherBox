@@ -39,6 +39,12 @@ What makes the runtime unique is its **zero-dependency, native execution** on bo
 
 **Android** + **Linux Namespaces** = containers that feel like a lightweight VM with native performance. Since Android is built on the Linux kernel, the same binary works on Linux Desktop too.
 
+> [!IMPORTANT]
+>
+> **AetherBox needs root** (Magisk / KernelSU / APatch).
+>
+> **No root?** Use **[AetherBox Lite](https://github.com/AidansQwert/AetherBox-Lite)** — separate companion app (Termux + PRoot / Omarchy, optional Shizuku). Not native containers; guest rootfs feeds still live in this repo’s [releases](https://github.com/AidansQwert/AetherBox/releases).
+
 > [!TIP]
 >
 > Check out [Community-supported Android devices](./Documentation/community-supported-devices.md) for a growing list of phones known to run Droidspaces / AetherBox.
@@ -146,6 +152,7 @@ What makes the runtime unique is its **zero-dependency, native execution** on bo
 ### Quick Navigation
 
 - [What is AetherBox / Droidspaces?](#what-is-droidspaces)
+- **[No root? AetherBox Lite](https://github.com/AidansQwert/AetherBox-Lite)**
 - [Features](#features)
 - [Android app (AetherBox)](#android-app-aetherbox)
 - [Droidspaces vs The Alternatives](#droidspaces-vs-the-alternatives)
@@ -285,7 +292,7 @@ Droidspaces supports Android devices running Linux kernel **3.10 and above**:
 
 #### Rooting Requirements
 
-Your device must be rooted for **this** app. (No root? See [AetherBox Lite](https://github.com/AidansQwert/AetherBox-Lite).) The following rooting methods have been tested:
+Your device must be rooted. The following rooting methods have been tested:
 
 | Root Method | Status | Notes |
 |-------------|--------|-------|
@@ -358,15 +365,7 @@ sudo ./droidspaces check
 - [Android Installation Guide](Documentation/Installation-Android.md)
 - [Linux Installation Guide](Documentation/Installation-Linux.md)
 
-### No root?
-
-AetherBox itself **requires root** (Magisk / KernelSU / APatch). Guest Linux images and rootfs catalogs (Omarchy, XFCE, community feeds under `Android/rootfs-feeds/`) stay in **this** repo and its [releases](https://github.com/AidansQwert/AetherBox/releases).
-
-For phones **without root**, use the separate companion:
-
-- **[AetherBox Lite](https://github.com/AidansQwert/AetherBox-Lite)** — guided Termux + PRoot / Omarchy setup, optional [Shizuku](https://shizuku.rikka.app/), with an on-launch modal that explains the limits
-
-Lite is **not** native AetherBox. It does not run the `droidspaces` binary or real Linux namespaces. Do not expect rooted GPU, mounts, or cgroup behaviour. Prefer the full app when you have root.
+No root? See **[AetherBox Lite](https://github.com/AidansQwert/AetherBox-Lite)** (callout near the top of this README).
 
 ---
 
