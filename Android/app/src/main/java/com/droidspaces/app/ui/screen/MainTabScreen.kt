@@ -40,6 +40,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -64,10 +65,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -101,9 +105,13 @@ import com.droidspaces.app.ui.component.HelpCard
 import com.droidspaces.app.ui.component.PullToRefreshWrapper
 import com.droidspaces.app.ui.component.SystemInfoCard
 import com.droidspaces.app.ui.component.applyCustomTheme
+import com.droidspaces.app.ui.theme.AdaptiveMetrics
 import com.droidspaces.app.ui.theme.HomeLayout
 import com.droidspaces.app.ui.theme.JetBrainsMono
 import com.droidspaces.app.ui.theme.SpaceGrotesk
+import com.droidspaces.app.ui.theme.ThemeState
+import com.droidspaces.app.ui.theme.WidthClass
+import com.droidspaces.app.ui.theme.rememberAdaptiveMetrics
 import com.droidspaces.app.ui.theme.rememberHomeLayout
 import com.droidspaces.app.ui.theme.rememberThemeState
 import com.droidspaces.app.ui.viewmodel.AppStateViewModel
@@ -323,6 +331,8 @@ fun MainTabScreen(
         }
     }
 
+    val adaptive = rememberAdaptiveMetrics()
+
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
@@ -374,7 +384,8 @@ fun MainTabScreen(
             )
         },
         bottomBar = {
-            // No bottom bar content here to avoid the solid background
+            // Phone: floating dock overlay inside content Box.
+            // Tablet/rail: side NavigationRail — no bottom bar.
         },
         contentWindowInsets = WindowInsets(0)
     ) { innerPadding ->
@@ -384,80 +395,14 @@ fun MainTabScreen(
         // visible region above the bar instead of behind it.
         var bottomBarHeight by remember { mutableStateOf(0.dp) }
         var openRepoSheetRequest by remember { mutableStateOf(false) }
-        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.fillMaxSize()
-            ) { page ->
-                when (tabs[page]) {
-                    TabItem.Home -> {
-                        HomeTabContent(
-                            appUpdate = appStateViewModel.appUpdate,
-                            droidspacesStatus = droidspacesStatus,
-                            isChecking = isChecking,
-                            isRootAvailable = appStateViewModel.isRootAvailable,
-                            onNavigateToInstallation = onNavigateToInstallation,
-                            onNavigateToContainers = {
-                                scope.launch {
-                                    pagerState.scrollToPage(tabs.indexOf(TabItem.Containers))
-                                }
-                            },
-                            onNavigateToControlPanel = {
-                                scope.launch {
-                                    pagerState.scrollToPage(tabs.indexOf(TabItem.ControlPanel))
-                                }
-                            },
-                            onNavigateToRootfsRepo = {
-                                openRepoSheetRequest = true
-                                scope.launch {
-                                    pagerState.scrollToPage(tabs.indexOf(TabItem.Containers))
-                                }
-                            },
-                            containerCount = containerCount,
-                            runningCount = runningCount,
-                            onRefresh = { performRefresh(TabItem.Home) }
-                        )
-                    }
 
-                    TabItem.Containers -> {
-                        ContainersTabContent(
-                            isBackendAvailable = isBackendAvailable,
-                            isRootAvailable = appStateViewModel.isRootAvailable,
-                            onNavigateToInstallation = onNavigateToContainerInstallation,
-                            onNavigateToEditContainer = onNavigateToEditContainer,
-                            onNavigateToContainerDetails = onNavigateToContainerDetails,
-                            containerViewModel = containerViewModel,
-                            onRefresh = { performRefresh(TabItem.Containers) },
-                            expandedContainerName = expandedContainerName,
-                            onExpandedContainerNameChange = { expandedContainerName = it },
-                            emptyStateBottomInset = bottomBarHeight,
-                            openRepoSheet = openRepoSheetRequest,
-                            onOpenRepoSheetConsumed = { openRepoSheetRequest = false }
-                        )
-                    }
-
-                    TabItem.ControlPanel -> {
-                        ControlPanelTabContent(
-                            isBackendAvailable = isBackendAvailable,
-                            isRootAvailable = appStateViewModel.isRootAvailable,
-                            containerViewModel = containerViewModel,
-                            onRefresh = { performRefresh(TabItem.ControlPanel) },
-                            onNavigateToContainerDetails = onNavigateToContainerDetails,
-                            onNavigateToTerminal = onNavigateToTerminal,
-                            emptyStateBottomInset = bottomBarHeight
-                        )
-                    }
-                }
-            }
-
-            // Floating Bottom Bar Overlay
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .onSizeChanged { bottomBarHeight = with(density) { it.height.toDp() } }
-            ) {
-                MainBottomBar(
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            if (adaptive.useRail) {
+                MainSideRail(
                     selectedTab = selectedTab,
                     onTabSelected = { tab ->
                         scope.launch {
@@ -466,6 +411,105 @@ fun MainTabScreen(
                         expandedContainerName = null
                     }
                 )
+                VerticalDivider(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(1.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+            ) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize(),
+                    userScrollEnabled = !adaptive.useRail
+                ) { page ->
+                    when (tabs[page]) {
+                        TabItem.Home -> {
+                            HomeTabContent(
+                                appUpdate = appStateViewModel.appUpdate,
+                                droidspacesStatus = droidspacesStatus,
+                                isChecking = isChecking,
+                                isRootAvailable = appStateViewModel.isRootAvailable,
+                                onNavigateToInstallation = onNavigateToInstallation,
+                                onNavigateToContainers = {
+                                    scope.launch {
+                                        pagerState.scrollToPage(tabs.indexOf(TabItem.Containers))
+                                    }
+                                },
+                                onNavigateToControlPanel = {
+                                    scope.launch {
+                                        pagerState.scrollToPage(tabs.indexOf(TabItem.ControlPanel))
+                                    }
+                                },
+                                onNavigateToRootfsRepo = {
+                                    openRepoSheetRequest = true
+                                    scope.launch {
+                                        pagerState.scrollToPage(tabs.indexOf(TabItem.Containers))
+                                    }
+                                },
+                                containerCount = containerCount,
+                                runningCount = runningCount,
+                                onRefresh = { performRefresh(TabItem.Home) },
+                                adaptive = adaptive
+                            )
+                        }
+
+                        TabItem.Containers -> {
+                            ContainersTabContent(
+                                isBackendAvailable = isBackendAvailable,
+                                isRootAvailable = appStateViewModel.isRootAvailable,
+                                onNavigateToInstallation = onNavigateToContainerInstallation,
+                                onNavigateToEditContainer = onNavigateToEditContainer,
+                                onNavigateToContainerDetails = onNavigateToContainerDetails,
+                                containerViewModel = containerViewModel,
+                                onRefresh = { performRefresh(TabItem.Containers) },
+                                expandedContainerName = expandedContainerName,
+                                onExpandedContainerNameChange = { expandedContainerName = it },
+                                emptyStateBottomInset = if (adaptive.useRail) 0.dp else bottomBarHeight,
+                                openRepoSheet = openRepoSheetRequest,
+                                onOpenRepoSheetConsumed = { openRepoSheetRequest = false }
+                            )
+                        }
+
+                        TabItem.ControlPanel -> {
+                            ControlPanelTabContent(
+                                isBackendAvailable = isBackendAvailable,
+                                isRootAvailable = appStateViewModel.isRootAvailable,
+                                containerViewModel = containerViewModel,
+                                onRefresh = { performRefresh(TabItem.ControlPanel) },
+                                onNavigateToContainerDetails = onNavigateToContainerDetails,
+                                onNavigateToTerminal = onNavigateToTerminal,
+                                emptyStateBottomInset = if (adaptive.useRail) 0.dp else bottomBarHeight
+                            )
+                        }
+                    }
+                }
+
+                if (!adaptive.useRail) {
+                    // Floating Bottom Bar Overlay (phones)
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .onSizeChanged { bottomBarHeight = with(density) { it.height.toDp() } }
+                    ) {
+                        MainBottomBar(
+                            selectedTab = selectedTab,
+                            onTabSelected = { tab ->
+                                scope.launch {
+                                    pagerState.scrollToPage(tabs.indexOf(tab))
+                                }
+                                expandedContainerName = null
+                            }
+                        )
+                    }
+                }
             }
         }
     }
@@ -483,7 +527,8 @@ private fun HomeTabContent(
     onNavigateToRootfsRepo: () -> Unit,
     containerCount: Int,
     runningCount: Int,
-    onRefresh: suspend () -> Unit
+    onRefresh: suspend () -> Unit,
+    adaptive: AdaptiveMetrics
 ) {
     val context = LocalContext.current
     val prefsManager = remember { PreferencesManager.getInstance(context) }
@@ -492,16 +537,18 @@ private fun HomeTabContent(
     var refreshTrigger by remember { mutableStateOf(0) }
     var idleTaps by remember(droidspacesStatus) { mutableStateOf(0) }
     var showThemeEditor by remember { mutableStateOf(false) }
+    var showLook by remember { mutableStateOf(homeLayout.showAppearanceExpanded()) }
 
-    val sectionGap = when (homeLayout) {
-        HomeLayout.COMPACT -> 12.dp
-        HomeLayout.COMMAND -> 18.dp
-        HomeLayout.SIMPLE -> 20.dp
+    LaunchedEffect(homeLayout) {
+        showLook = homeLayout.showAppearanceExpanded()
     }
-    val horizontalPad = when (homeLayout) {
-        HomeLayout.COMMAND -> 16.dp
-        else -> 20.dp
-    }
+
+    val sectionGap = homeLayout.sectionGap()
+    val horizontalPad = homeLayout.horizontalPad()
+    val useSplit = (homeLayout == HomeLayout.DASHBOARD && adaptive.dualPaneHome) ||
+        (homeLayout == HomeLayout.GALLERY && adaptive.widthClass == WidthClass.Expanded)
+    val compactMetrics = homeLayout.isCompactMetrics()
+    val showOrbit = homeLayout.showOrbit() && isRootAvailable
 
     val animatedContainers by animateIntAsState(
         targetValue = containerCount,
@@ -554,392 +601,222 @@ private fun HomeTabContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 120.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp)
+                .padding(bottom = if (adaptive.useRail) 28.dp else 120.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            when (homeLayout) {
-                HomeLayout.COMMAND -> {
-                    HomeCommandHero(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp)
-                    )
-                }
-                HomeLayout.COMPACT -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = horizontalPad)
-                            .padding(top = 6.dp, bottom = 4.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Text(
-                            text = context.getString(R.string.app_name),
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontFamily = SpaceGrotesk,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = (-0.4).sp
-                            ),
-                            color = MaterialTheme.colorScheme.onBackground,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = context.getString(
-                                R.string.home_spaces_live,
-                                animatedContainers,
-                                animatedRunning
-                            ),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontFamily = JetBrainsMono,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-                HomeLayout.SIMPLE -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = horizontalPad)
-                            .padding(top = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = context.getString(R.string.app_name),
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontFamily = SpaceGrotesk,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = (-0.6).sp
-                            ),
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Text(
-                            text = context.getString(R.string.home_command_center),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
-                        )
-                    }
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = horizontalPad)
-                    .padding(top = sectionGap),
-                verticalArrangement = Arrangement.spacedBy(sectionGap)
-            ) {
-                if (homeLayout == HomeLayout.COMMAND && isRootAvailable) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
-                                text = context.getString(R.string.home_orbit_title),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = context.getString(R.string.home_orbit_subtitle),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            )
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            HomeOrbitAction(
-                                modifier = Modifier.weight(1f),
-                                icon = Icons.Default.Layers,
-                                label = context.getString(R.string.home_orbit_spaces),
-                                accent = MaterialTheme.colorScheme.primary,
-                                onClick = onNavigateToContainers
-                            )
-                            HomeOrbitAction(
-                                modifier = Modifier.weight(1f),
-                                icon = Icons.Default.RocketLaunch,
-                                label = context.getString(R.string.home_orbit_live),
-                                accent = MaterialTheme.colorScheme.tertiary,
-                                onClick = onNavigateToControlPanel
-                            )
-                            HomeOrbitAction(
-                                modifier = Modifier.weight(1f),
-                                icon = Icons.Default.CloudDownload,
-                                label = context.getString(R.string.home_orbit_images),
-                                accent = MaterialTheme.colorScheme.secondary,
-                                onClick = onNavigateToRootfsRepo
-                            )
-                        }
-                    }
-
-                    HomeLivePulse(
-                        runningCount = animatedRunning,
-                        containerCount = animatedContainers
-                    )
-                }
-
-                DroidspacesStatusCard(
-                    status = droidspacesStatus,
-                    version = null,
-                    isChecking = isChecking,
-                    isRootAvailable = isRootAvailable,
-                    refreshTrigger = refreshTrigger,
-                    appUpdate = appUpdate,
-                    onClick = onStatusClick
-                )
-
-                if (isRootAvailable) {
-                    when (homeLayout) {
-                        HomeLayout.COMPACT -> {
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                HomeCompactMetricRow(
-                                    value = animatedContainers,
-                                    label = context.getString(R.string.containers),
-                                    hint = context.getString(R.string.home_metric_containers_hint),
-                                    icon = Icons.Default.Layers,
-                                    accent = MaterialTheme.colorScheme.primary,
-                                    onClick = onNavigateToContainers
-                                )
-                                HomeCompactMetricRow(
-                                    value = animatedRunning,
-                                    label = context.getString(R.string.running),
-                                    hint = context.getString(R.string.home_metric_running_hint),
-                                    icon = Icons.Default.PlayCircle,
-                                    accent = MaterialTheme.colorScheme.secondary,
-                                    onClick = onNavigateToControlPanel
-                                )
-                            }
-                        }
-                        else -> {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                HomeMetricTile(
-                                    modifier = Modifier.weight(1f),
-                                    value = animatedContainers,
-                                    label = context.getString(R.string.containers),
-                                    hint = context.getString(R.string.home_metric_containers_hint),
-                                    icon = Icons.Default.Layers,
-                                    accent = MaterialTheme.colorScheme.primary,
-                                    onClick = onNavigateToContainers
-                                )
-                                HomeMetricTile(
-                                    modifier = Modifier.weight(1f),
-                                    value = animatedRunning,
-                                    label = context.getString(R.string.running),
-                                    hint = context.getString(R.string.home_metric_running_hint),
-                                    icon = Icons.Default.PlayCircle,
-                                    accent = MaterialTheme.colorScheme.secondary,
-                                    onClick = onNavigateToControlPanel
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Rootfs Repository
-                Column(verticalArrangement = Arrangement.spacedBy(if (homeLayout == HomeLayout.COMPACT) 8.dp else 12.dp)) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = context.getString(R.string.home_rootfs_section),
-                            style = if (homeLayout == HomeLayout.COMPACT) {
-                                MaterialTheme.typography.titleSmall
-                            } else {
-                                MaterialTheme.typography.titleMedium
-                            },
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = context.getString(R.string.home_rootfs_subtitle),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            maxLines = if (homeLayout == HomeLayout.COMPACT) 1 else 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-
-                    LazyRow(
-                        contentPadding = PaddingValues(0.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        items(CuratedRootfsRepos.presets, key = { it.id }) { repo ->
-                            HomeRootfsRepoCard(
-                                name = repo.name,
-                                description = repo.description,
-                                category = repo.category,
-                                onClick = onNavigateToRootfsRepo,
-                                compact = homeLayout == HomeLayout.COMPACT
-                            )
-                        }
-                        item(key = "browse-all") {
-                            val cardHeight = if (homeLayout == HomeLayout.COMPACT) 108.dp else 132.dp
-                            Surface(
-                                onClick = onNavigateToRootfsRepo,
-                                modifier = Modifier
-                                    .width(148.dp)
-                                    .height(cardHeight),
-                                shape = RoundedCornerShape(16.dp),
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                border = BorderStroke(
-                                    1.dp,
-                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
-                                )
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(16.dp),
-                                    verticalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CloudDownload,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                    Text(
-                                        text = context.getString(R.string.home_rootfs_browse_all),
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontFamily = SpaceGrotesk,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Appearance — layout picker + theme modes + palette + custom editor
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = context.getString(R.string.home_appearance_section),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = context.getString(R.string.home_appearance_subtitle),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
-                    }
-
-                    HomeLayoutPicker(
-                        selected = homeLayout,
-                        onSelected = { prefsManager.homeLayout = it.name }
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        HomeThemeModeChip(
-                            label = context.getString(R.string.home_theme_system),
-                            selected = themeState.followSystemTheme,
-                            onClick = { prefsManager.followSystemTheme = true },
-                            modifier = Modifier.weight(1f)
-                        )
-                        HomeThemeModeChip(
-                            label = context.getString(R.string.home_theme_light),
-                            selected = !themeState.followSystemTheme && !prefsManager.darkTheme,
-                            onClick = {
-                                prefsManager.followSystemTheme = false
-                                prefsManager.darkTheme = false
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                        HomeThemeModeChip(
-                            label = context.getString(R.string.home_theme_dark),
-                            selected = !themeState.followSystemTheme && prefsManager.darkTheme,
-                            onClick = {
-                                prefsManager.followSystemTheme = false
-                                prefsManager.darkTheme = true
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        border = BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-                        )
-                    ) {
-                        AccentColorPicker(
-                            selectedPalette = themeState.themePalette,
-                            isDarkTheme = themeState.darkTheme,
-                            customThemeColors = themeState.customThemeColors,
-                            onPaletteSelected = { palette ->
-                                prefsManager.useDynamicColor = false
-                                prefsManager.themePalette = palette.name
-                            },
-                            onCustomColorsApplied = { }
-                        )
-                    }
-
-                    Surface(
-                        onClick = { showThemeEditor = true },
-                        shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainer,
-                        border = BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
+            Column(modifier = Modifier.widthIn(max = adaptive.contentMaxWidth).fillMaxWidth()) {
+                when (homeLayout) {
+                    HomeLayout.COMMAND -> {
+                        HomeCommandHero(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                .padding(bottom = 8.dp)
+                        )
+                    }
+                    HomeLayout.COMPACT, HomeLayout.FOCUS -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = horizontalPad)
+                                .padding(top = 6.dp, bottom = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Palette,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
+                            Text(
+                                text = context.getString(R.string.app_name),
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontFamily = SpaceGrotesk,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = (-0.4).sp
+                                ),
+                                color = MaterialTheme.colorScheme.onBackground,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = context.getString(R.string.theme_create_cta),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Text(
-                                    text = context.getString(R.string.theme_create_subtitle),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                            Icon(
-                                imageVector = Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                            Text(
+                                text = context.getString(
+                                    R.string.home_spaces_live,
+                                    animatedContainers,
+                                    animatedRunning
+                                ),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontFamily = JetBrainsMono,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    HomeLayout.SIMPLE, HomeLayout.GALLERY, HomeLayout.DASHBOARD -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = horizontalPad)
+                                .padding(top = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = context.getString(R.string.app_name),
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontFamily = SpaceGrotesk,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = (-0.6).sp
+                                ),
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Text(
+                                text = context.getString(R.string.home_command_center),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
                             )
                         }
                     }
                 }
 
-                if (isRootAvailable && homeLayout != HomeLayout.COMMAND) {
-                    HomeQuickAction(
-                        icon = Icons.Default.Dashboard,
-                        label = context.getString(R.string.panel),
-                        description = context.getString(R.string.home_quick_panel_desc),
-                        onClick = onNavigateToControlPanel
-                    )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = horizontalPad)
+                        .padding(top = sectionGap),
+                    verticalArrangement = Arrangement.spacedBy(sectionGap)
+                ) {
+                    if (showOrbit) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    text = context.getString(R.string.home_orbit_title),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = context.getString(R.string.home_orbit_subtitle),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                HomeOrbitAction(
+                                    modifier = Modifier.weight(1f),
+                                    icon = Icons.Default.Layers,
+                                    label = context.getString(R.string.home_orbit_spaces),
+                                    accent = MaterialTheme.colorScheme.primary,
+                                    onClick = onNavigateToContainers
+                                )
+                                HomeOrbitAction(
+                                    modifier = Modifier.weight(1f),
+                                    icon = Icons.Default.RocketLaunch,
+                                    label = context.getString(R.string.home_orbit_live),
+                                    accent = MaterialTheme.colorScheme.tertiary,
+                                    onClick = onNavigateToControlPanel
+                                )
+                                HomeOrbitAction(
+                                    modifier = Modifier.weight(1f),
+                                    icon = Icons.Default.CloudDownload,
+                                    label = context.getString(R.string.home_orbit_images),
+                                    accent = MaterialTheme.colorScheme.secondary,
+                                    onClick = onNavigateToRootfsRepo
+                                )
+                            }
+                        }
+
+                        if (homeLayout == HomeLayout.COMMAND) {
+                            HomeLivePulse(
+                                runningCount = animatedRunning,
+                                containerCount = animatedContainers
+                            )
+                        }
+                    }
+
+                    if (useSplit) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(sectionGap)
+                            ) {
+                                HomeStatusAndMetricsBlock(
+                                    droidspacesStatus = droidspacesStatus,
+                                    isChecking = isChecking,
+                                    isRootAvailable = isRootAvailable,
+                                    refreshTrigger = refreshTrigger,
+                                    appUpdate = appUpdate,
+                                    onStatusClick = onStatusClick,
+                                    compactMetrics = compactMetrics,
+                                    animatedContainers = animatedContainers,
+                                    animatedRunning = animatedRunning,
+                                    onNavigateToContainers = onNavigateToContainers,
+                                    onNavigateToControlPanel = onNavigateToControlPanel
+                                )
+                            }
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(sectionGap)
+                            ) {
+                                HomeRootfsBlock(
+                                    homeLayout = homeLayout,
+                                    compactMetrics = compactMetrics,
+                                    adaptive = adaptive,
+                                    onNavigateToRootfsRepo = onNavigateToRootfsRepo
+                                )
+                                HomeAppearanceBlock(
+                                    homeLayout = homeLayout,
+                                    adaptive = adaptive,
+                                    showLook = showLook,
+                                    onShowLook = { showLook = true },
+                                    prefsManager = prefsManager,
+                                    themeState = themeState,
+                                    onOpenThemeEditor = { showThemeEditor = true }
+                                )
+                            }
+                        }
+                    } else {
+                        HomeStatusAndMetricsBlock(
+                            droidspacesStatus = droidspacesStatus,
+                            isChecking = isChecking,
+                            isRootAvailable = isRootAvailable,
+                            refreshTrigger = refreshTrigger,
+                            appUpdate = appUpdate,
+                            onStatusClick = onStatusClick,
+                            compactMetrics = compactMetrics,
+                            animatedContainers = animatedContainers,
+                            animatedRunning = animatedRunning,
+                            onNavigateToContainers = onNavigateToContainers,
+                            onNavigateToControlPanel = onNavigateToControlPanel
+                        )
+                        HomeRootfsBlock(
+                            homeLayout = homeLayout,
+                            compactMetrics = compactMetrics,
+                            adaptive = adaptive,
+                            onNavigateToRootfsRepo = onNavigateToRootfsRepo
+                        )
+                        HomeAppearanceBlock(
+                            homeLayout = homeLayout,
+                            adaptive = adaptive,
+                            showLook = showLook,
+                            onShowLook = { showLook = true },
+                            prefsManager = prefsManager,
+                            themeState = themeState,
+                            onOpenThemeEditor = { showThemeEditor = true }
+                        )
+                    }
+
+                    if (isRootAvailable && !showOrbit) {
+                        HomeQuickAction(
+                            icon = Icons.Default.Dashboard,
+                            label = context.getString(R.string.panel),
+                            description = context.getString(R.string.home_quick_panel_desc),
+                            onClick = onNavigateToControlPanel
+                        )
+                    }
+                    if (homeLayout != HomeLayout.FOCUS) {
+                        SystemInfoCard(refreshTrigger = refreshTrigger)
+                        HelpCard()
+                    }
                 }
-                SystemInfoCard(refreshTrigger = refreshTrigger)
-                HelpCard()
             }
         }
     }
@@ -958,18 +835,400 @@ private fun HomeTabContent(
 }
 
 @Composable
+private fun HomeStatusAndMetricsBlock(
+    droidspacesStatus: DroidspacesStatus,
+    isChecking: Boolean,
+    isRootAvailable: Boolean,
+    refreshTrigger: Int,
+    appUpdate: AppUpdateInfo?,
+    onStatusClick: () -> Unit,
+    compactMetrics: Boolean,
+    animatedContainers: Int,
+    animatedRunning: Int,
+    onNavigateToContainers: () -> Unit,
+    onNavigateToControlPanel: () -> Unit
+) {
+    val context = LocalContext.current
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        DroidspacesStatusCard(
+            status = droidspacesStatus,
+            version = null,
+            isChecking = isChecking,
+            isRootAvailable = isRootAvailable,
+            refreshTrigger = refreshTrigger,
+            appUpdate = appUpdate,
+            onClick = onStatusClick
+        )
+
+        if (isRootAvailable) {
+            if (compactMetrics) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    HomeCompactMetricRow(
+                        value = animatedContainers,
+                        label = context.getString(R.string.containers),
+                        hint = context.getString(R.string.home_metric_containers_hint),
+                        icon = Icons.Default.Layers,
+                        accent = MaterialTheme.colorScheme.primary,
+                        onClick = onNavigateToContainers
+                    )
+                    HomeCompactMetricRow(
+                        value = animatedRunning,
+                        label = context.getString(R.string.running),
+                        hint = context.getString(R.string.home_metric_running_hint),
+                        icon = Icons.Default.PlayCircle,
+                        accent = MaterialTheme.colorScheme.secondary,
+                        onClick = onNavigateToControlPanel
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    HomeMetricTile(
+                        modifier = Modifier.weight(1f),
+                        value = animatedContainers,
+                        label = context.getString(R.string.containers),
+                        hint = context.getString(R.string.home_metric_containers_hint),
+                        icon = Icons.Default.Layers,
+                        accent = MaterialTheme.colorScheme.primary,
+                        onClick = onNavigateToContainers
+                    )
+                    HomeMetricTile(
+                        modifier = Modifier.weight(1f),
+                        value = animatedRunning,
+                        label = context.getString(R.string.running),
+                        hint = context.getString(R.string.home_metric_running_hint),
+                        icon = Icons.Default.PlayCircle,
+                        accent = MaterialTheme.colorScheme.secondary,
+                        onClick = onNavigateToControlPanel
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeRootfsBlock(
+    homeLayout: HomeLayout,
+    compactMetrics: Boolean,
+    adaptive: AdaptiveMetrics,
+    onNavigateToRootfsRepo: () -> Unit
+) {
+    if (homeLayout == HomeLayout.FOCUS) return
+    val context = LocalContext.current
+    Column(
+        verticalArrangement = Arrangement.spacedBy(if (compactMetrics) 8.dp else 12.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = context.getString(R.string.home_rootfs_section),
+                style = if (compactMetrics) {
+                    MaterialTheme.typography.titleSmall
+                } else {
+                    MaterialTheme.typography.titleMedium
+                },
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = context.getString(R.string.home_rootfs_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                maxLines = if (compactMetrics) 1 else 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        val useGrid = homeLayout == HomeLayout.GALLERY ||
+            (homeLayout == HomeLayout.DASHBOARD && adaptive.widthClass != WidthClass.Compact)
+        if (useGrid) {
+            val cols = if (adaptive.widthClass == WidthClass.Expanded) 3 else 2
+            CuratedRootfsRepos.presets.chunked(cols).forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    row.forEach { repo ->
+                        HomeRootfsRepoCard(
+                            name = repo.name,
+                            description = repo.description,
+                            category = repo.category,
+                            onClick = onNavigateToRootfsRepo,
+                            compact = compactMetrics || homeLayout == HomeLayout.GALLERY,
+                            modifier = Modifier.weight(1f),
+                            stretch = true
+                        )
+                    }
+                    repeat(cols - row.size) {
+                        Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
+            Surface(
+                onClick = onNavigateToRootfsRepo,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(if (compactMetrics) 56.dp else 64.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                border = BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CloudDownload,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        text = context.getString(R.string.home_rootfs_browse_all),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontFamily = SpaceGrotesk,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        } else {
+            LazyRow(
+                contentPadding = PaddingValues(0.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(CuratedRootfsRepos.presets, key = { it.id }) { repo ->
+                    HomeRootfsRepoCard(
+                        name = repo.name,
+                        description = repo.description,
+                        category = repo.category,
+                        onClick = onNavigateToRootfsRepo,
+                        compact = compactMetrics
+                    )
+                }
+                item(key = "browse-all") {
+                    val cardHeight = if (compactMetrics) 108.dp else 132.dp
+                    Surface(
+                        onClick = onNavigateToRootfsRepo,
+                        modifier = Modifier
+                            .width(148.dp)
+                            .height(cardHeight),
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CloudDownload,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Text(
+                                text = context.getString(R.string.home_rootfs_browse_all),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontFamily = SpaceGrotesk,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeAppearanceBlock(
+    homeLayout: HomeLayout,
+    adaptive: AdaptiveMetrics,
+    showLook: Boolean,
+    onShowLook: () -> Unit,
+    prefsManager: PreferencesManager,
+    themeState: ThemeState,
+    onOpenThemeEditor: () -> Unit
+) {
+    val context = LocalContext.current
+    if (!showLook) {
+        Surface(
+            onClick = onShowLook,
+            shape = RoundedCornerShape(14.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+            ),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = context.getString(R.string.home_layout_show_look),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)
+            )
+        }
+        return
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = context.getString(R.string.home_appearance_section),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = context.getString(R.string.home_appearance_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+        }
+
+        HomeLayoutPicker(
+            selected = homeLayout,
+            onSelected = { prefsManager.homeLayout = it.name }
+        )
+
+        Text(
+            text = when (adaptive.widthClass) {
+                WidthClass.Compact -> context.getString(R.string.home_adaptive_phone)
+                WidthClass.Medium -> context.getString(R.string.home_adaptive_tablet)
+                WidthClass.Expanded -> context.getString(R.string.home_adaptive_wide)
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            HomeThemeModeChip(
+                label = context.getString(R.string.home_theme_system),
+                selected = themeState.followSystemTheme,
+                onClick = { prefsManager.followSystemTheme = true },
+                modifier = Modifier.weight(1f)
+            )
+            HomeThemeModeChip(
+                label = context.getString(R.string.home_theme_light),
+                selected = !themeState.followSystemTheme && !prefsManager.darkTheme,
+                onClick = {
+                    prefsManager.followSystemTheme = false
+                    prefsManager.darkTheme = false
+                },
+                modifier = Modifier.weight(1f)
+            )
+            HomeThemeModeChip(
+                label = context.getString(R.string.home_theme_dark),
+                selected = !themeState.followSystemTheme && prefsManager.darkTheme,
+                onClick = {
+                    prefsManager.followSystemTheme = false
+                    prefsManager.darkTheme = true
+                },
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+            )
+        ) {
+            AccentColorPicker(
+                selectedPalette = themeState.themePalette,
+                isDarkTheme = themeState.darkTheme,
+                customThemeColors = themeState.customThemeColors,
+                onPaletteSelected = { palette ->
+                    prefsManager.useDynamicColor = false
+                    prefsManager.themePalette = palette.name
+                },
+                onCustomColorsApplied = { }
+            )
+        }
+
+        Surface(
+            onClick = onOpenThemeEditor,
+            shape = RoundedCornerShape(14.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+            ),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Palette,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = context.getString(R.string.theme_create_cta),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = context.getString(R.string.theme_create_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun HomeRootfsRepoCard(
     name: String,
     description: String,
     category: String,
     onClick: () -> Unit,
-    compact: Boolean = false
+    compact: Boolean = false,
+    modifier: Modifier = Modifier,
+    stretch: Boolean = false
 ) {
     val cardHeight = if (compact) 108.dp else 132.dp
     Surface(
         onClick = onClick,
-        modifier = Modifier
-            .width(if (compact) 168.dp else 188.dp)
+        modifier = modifier
+            .then(if (stretch) Modifier.fillMaxWidth() else Modifier.width(if (compact) 168.dp else 188.dp))
             .height(cardHeight),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -1126,6 +1385,21 @@ private fun HomeLayoutPicker(
             HomeLayout.COMPACT,
             R.string.home_layout_compact,
             R.string.home_layout_compact_desc
+        ),
+        Triple(
+            HomeLayout.GALLERY,
+            R.string.home_layout_gallery,
+            R.string.home_layout_gallery_desc
+        ),
+        Triple(
+            HomeLayout.FOCUS,
+            R.string.home_layout_focus,
+            R.string.home_layout_focus_desc
+        ),
+        Triple(
+            HomeLayout.DASHBOARD,
+            R.string.home_layout_dashboard,
+            R.string.home_layout_dashboard_desc
         )
     )
     Column(
@@ -1604,6 +1878,47 @@ private fun ControlPanelTabContent(
             onNavigateToTerminal = onNavigateToTerminal,
             emptyStateBottomInset = emptyStateBottomInset
         )
+    }
+}
+
+@Composable
+private fun MainSideRail(
+    selectedTab: TabItem,
+    onTabSelected: (TabItem) -> Unit
+) {
+    val context = LocalContext.current
+    NavigationRail(
+        modifier = Modifier.fillMaxHeight(),
+        containerColor = Color.Transparent,
+        header = {
+            Text(
+                text = "AB",
+                style = MaterialTheme.typography.titleMedium,
+                fontFamily = SpaceGrotesk,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(vertical = 12.dp)
+            )
+        }
+    ) {
+        TabItem.entries.forEach { tab ->
+            NavigationRailItem(
+                selected = selectedTab == tab,
+                onClick = { onTabSelected(tab) },
+                icon = {
+                    Icon(tab.icon, contentDescription = context.getString(tab.titleResId))
+                },
+                label = {
+                    Text(
+                        text = context.getString(tab.titleResId),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = SpaceGrotesk,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            )
+        }
     }
 }
 
