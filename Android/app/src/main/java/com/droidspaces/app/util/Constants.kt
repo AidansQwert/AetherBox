@@ -42,6 +42,7 @@ object Constants {
     const val KEY_AMOLED_MODE = "amoled_mode"
     const val KEY_USE_DYNAMIC_COLOR = "use_dynamic_color"
     const val KEY_THEME_PALETTE = "theme_palette"
+    const val KEY_HOME_LAYOUT = "home_layout"
     const val KEY_CUSTOM_THEME_PRIMARY_HUE = "custom_theme_primary_hue"
     const val KEY_CUSTOM_THEME_SECONDARY_HUE = "custom_theme_secondary_hue"
     const val KEY_CUSTOM_THEME_TERTIARY_HUE = "custom_theme_tertiary_hue"

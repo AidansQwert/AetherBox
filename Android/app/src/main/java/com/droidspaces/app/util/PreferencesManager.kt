@@ -144,6 +144,13 @@ class PreferencesManager private constructor(context: Context) {
             prefs.edit().putString(KEY_THEME_PALETTE, value).apply()
         }
 
+    /** Home screen layout: SIMPLE, COMMAND, or COMPACT. */
+    var homeLayout: String
+        get() = prefs.getString(KEY_HOME_LAYOUT, "SIMPLE") ?: "SIMPLE"
+        set(value) {
+            prefs.edit().putString(KEY_HOME_LAYOUT, value).apply()
+        }
+
     var customThemePrimaryHue: Float
         get() = prefs.getFloat(KEY_CUSTOM_THEME_PRIMARY_HUE, 175f)
         set(value) {
@@ -586,6 +593,7 @@ class PreferencesManager private constructor(context: Context) {
         private const val KEY_TERMINAL_TAP_KEYBOARD = Constants.KEY_TERMINAL_TAP_KEYBOARD
         private const val KEY_TERMINAL_KEYBOARD_LEFT = Constants.KEY_TERMINAL_KEYBOARD_LEFT
         const val KEY_THEME_PALETTE = Constants.KEY_THEME_PALETTE
+        private const val KEY_HOME_LAYOUT = Constants.KEY_HOME_LAYOUT
         private const val KEY_CUSTOM_THEME_PRIMARY_HUE = Constants.KEY_CUSTOM_THEME_PRIMARY_HUE
         private const val KEY_CUSTOM_THEME_SECONDARY_HUE = Constants.KEY_CUSTOM_THEME_SECONDARY_HUE
         private const val KEY_CUSTOM_THEME_TERTIARY_HUE = Constants.KEY_CUSTOM_THEME_TERTIARY_HUE
