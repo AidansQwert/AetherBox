@@ -129,7 +129,7 @@
     <string name="home_theme_system">Auto</string>
     <string name="home_theme_light">Day</string>
     <string name="home_theme_dark">Night</string>
-    <string name="home_command_center">Linux spaces on your device</string>
+    <string name="home_command_center">Manage Linux containers on your device</string>
     <string name="home_spaces_live">%1$d spaces · %2$d live</string>
     <string name="home_brand_kicker">AETHERBOX</string>
     <string name="home_status_strip">Backend</string>

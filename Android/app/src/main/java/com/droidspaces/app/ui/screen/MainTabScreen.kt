@@ -7,17 +7,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -79,7 +70,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
@@ -105,14 +95,12 @@ import com.droidspaces.app.ui.theme.ThemePalette
 import com.droidspaces.app.ui.theme.rememberThemeState
 import com.droidspaces.app.ui.viewmodel.AppStateViewModel
 import com.droidspaces.app.ui.viewmodel.ContainerViewModel
-import com.droidspaces.app.util.AnimationUtils
 import com.droidspaces.app.util.AppUpdateInfo
 import com.droidspaces.app.util.CuratedRootfsRepos
 import com.droidspaces.app.util.DroidspacesBackendStatus
 import com.droidspaces.app.util.PreferencesManager
 import com.droidspaces.app.util.SystemInfoManager
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -491,49 +479,19 @@ private fun HomeTabContent(
     var idleTaps by remember(droidspacesStatus) { mutableStateOf(0) }
     var showThemeEditor by remember { mutableStateOf(false) }
 
-    var stage by remember { mutableStateOf(0) }
-    LaunchedEffect(Unit) {
-        for (i in 1..5) {
-            delay(55)
-            stage = i
-        }
-    }
-
-    fun enter(threshold: Int): Pair<Float, Float> {
-        val visible = stage >= threshold
-        return if (visible) 1f to 0f else 0f to 28f
-    }
-
-    val (mastA, mastY) = enter(1)
-    val (pulseA, pulseY) = enter(2)
-    val (gridA, gridY) = enter(3)
-    val (repoA, repoY) = enter(4)
-    val (restA, restY) = enter(5)
-
-    val mastAlpha by animateFloatAsState(mastA, AnimationUtils.fadeInSpec(), label = "mastA")
-    val mastOffset by animateFloatAsState(mastY, AnimationUtils.slowSpec(), label = "mastY")
-    val pulseAlpha by animateFloatAsState(pulseA, AnimationUtils.fadeInSpec(), label = "pulseA")
-    val pulseOffset by animateFloatAsState(pulseY, AnimationUtils.slowSpec(), label = "pulseY")
-    val gridAlpha by animateFloatAsState(gridA, AnimationUtils.fadeInSpec(), label = "gridA")
-    val gridOffset by animateFloatAsState(gridY, AnimationUtils.slowSpec(), label = "gridY")
-    val repoAlpha by animateFloatAsState(repoA, AnimationUtils.fadeInSpec(), label = "repoA")
-    val repoOffset by animateFloatAsState(repoY, AnimationUtils.slowSpec(), label = "repoY")
-    val restAlpha by animateFloatAsState(restA, AnimationUtils.fadeInSpec(), label = "restA")
-    val restOffset by animateFloatAsState(restY, AnimationUtils.slowSpec(), label = "restY")
-
     val animatedContainers by animateIntAsState(
         targetValue = containerCount,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMedium
         ),
         label = "containers"
     )
     val animatedRunning by animateIntAsState(
         targetValue = runningCount,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMedium
         ),
         label = "running"
     )
@@ -548,189 +506,105 @@ private fun HomeTabContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 120.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp)
+                .padding(horizontal = 20.dp)
+                .padding(top = 8.dp, bottom = 120.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Brand plane
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .graphicsLayer {
-                        alpha = mastAlpha
-                        translationY = mastOffset
-                    }
-                    .padding(bottom = 4.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(148.dp)
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.26f),
-                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f),
-                                    Color.Transparent
-                                )
-                            )
-                        )
-                )
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 22.dp)
-                        .padding(top = 8.dp, bottom = 10.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = context.getString(R.string.home_brand_kicker),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontFamily = JetBrainsMono,
+            // Quiet brand header
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = context.getString(R.string.app_name),
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontFamily = SpaceGrotesk,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 3.2.sp
-                    )
-                    Text(
-                        text = context.getString(R.string.app_name),
-                        style = MaterialTheme.typography.displaySmall.copy(
-                            fontFamily = SpaceGrotesk,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = (-1.1).sp,
-                            lineHeight = 40.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = context.getString(R.string.home_command_center),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.88f)
-                    )
-                }
-            }
-
-            // Live pulse strip
-            if (isRootAvailable) {
-                HomeLivePulse(
-                    runningCount = animatedRunning,
-                    containerCount = animatedContainers,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .graphicsLayer {
-                            alpha = pulseAlpha
-                            translationY = pulseOffset
-                        }
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 16.dp)
+                        letterSpacing = (-0.6).sp
+                    ),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = context.getString(R.string.home_command_center),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
                 )
             }
 
-            // Backend status + metric tiles
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .graphicsLayer {
-                        alpha = gridAlpha
-                        translationY = gridOffset
+            DroidspacesStatusCard(
+                status = droidspacesStatus,
+                version = null,
+                isChecking = isChecking,
+                isRootAvailable = isRootAvailable,
+                refreshTrigger = refreshTrigger,
+                appUpdate = appUpdate,
+                onClick = {
+                    if (!isRootAvailable) return@DroidspacesStatusCard
+                    if (droidspacesStatus == DroidspacesStatus.NotInstalled ||
+                        droidspacesStatus == DroidspacesStatus.Corrupted ||
+                        droidspacesStatus == DroidspacesStatus.UpdateAvailable ||
+                        droidspacesStatus == DroidspacesStatus.ModuleMissing
+                    ) {
+                        onNavigateToInstallation()
+                        return@DroidspacesStatusCard
                     }
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                DroidspacesStatusCard(
-                    status = droidspacesStatus,
-                    version = null,
-                    isChecking = isChecking,
-                    isRootAvailable = isRootAvailable,
-                    refreshTrigger = refreshTrigger,
-                    appUpdate = appUpdate,
-                    onClick = {
-                        if (!isRootAvailable) return@DroidspacesStatusCard
-                        if (droidspacesStatus == DroidspacesStatus.NotInstalled ||
-                            droidspacesStatus == DroidspacesStatus.Corrupted ||
-                            droidspacesStatus == DroidspacesStatus.UpdateAvailable ||
-                            droidspacesStatus == DroidspacesStatus.ModuleMissing
-                        ) {
-                            onNavigateToInstallation()
-                            return@DroidspacesStatusCard
-                        }
-                        if (droidspacesStatus != DroidspacesStatus.Working) return@DroidspacesStatusCard
-                        idleTaps++
-                        when (idleTaps) {
-                            5 -> Toast.makeText(context, R.string.easter_egg_warning, Toast.LENGTH_SHORT).show()
-                            10 -> {
-                                idleTaps = 0
-                                Toast.makeText(context, R.string.easter_egg_reward, Toast.LENGTH_SHORT).show()
-                                runCatching {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(EASTER_EGG_URL)))
-                                }
+                    if (droidspacesStatus != DroidspacesStatus.Working) return@DroidspacesStatusCard
+                    idleTaps++
+                    when (idleTaps) {
+                        5 -> Toast.makeText(context, R.string.easter_egg_warning, Toast.LENGTH_SHORT).show()
+                        10 -> {
+                            idleTaps = 0
+                            Toast.makeText(context, R.string.easter_egg_reward, Toast.LENGTH_SHORT).show()
+                            runCatching {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(EASTER_EGG_URL)))
                             }
                         }
                     }
-                )
+                }
+            )
 
-                if (isRootAvailable) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        HomeMetricTile(
-                            modifier = Modifier.weight(1f),
-                            value = animatedContainers,
-                            label = context.getString(R.string.containers),
-                            hint = context.getString(R.string.home_metric_containers_hint),
-                            icon = Icons.Default.Layers,
-                            accent = MaterialTheme.colorScheme.primary,
-                            onClick = onNavigateToContainers
-                        )
-                        HomeMetricTile(
-                            modifier = Modifier.weight(1f),
-                            value = animatedRunning,
-                            label = context.getString(R.string.running),
-                            hint = context.getString(R.string.home_metric_running_hint),
-                            icon = Icons.Default.PlayCircle,
-                            accent = MaterialTheme.colorScheme.secondary,
-                            onClick = onNavigateToControlPanel
-                        )
-                    }
+            if (isRootAvailable) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    HomeMetricTile(
+                        modifier = Modifier.weight(1f),
+                        value = animatedContainers,
+                        label = context.getString(R.string.containers),
+                        hint = context.getString(R.string.home_metric_containers_hint),
+                        icon = Icons.Default.Layers,
+                        accent = MaterialTheme.colorScheme.primary,
+                        onClick = onNavigateToContainers
+                    )
+                    HomeMetricTile(
+                        modifier = Modifier.weight(1f),
+                        value = animatedRunning,
+                        label = context.getString(R.string.running),
+                        hint = context.getString(R.string.home_metric_running_hint),
+                        icon = Icons.Default.PlayCircle,
+                        accent = MaterialTheme.colorScheme.secondary,
+                        onClick = onNavigateToControlPanel
+                    )
                 }
             }
 
-            // Rootfs Repository — featured catalogs
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .graphicsLayer {
-                        alpha = repoAlpha
-                        translationY = repoOffset
-                    }
-                    .padding(top = 22.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = context.getString(R.string.home_rootfs_section),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = context.getString(R.string.home_rootfs_subtitle),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
-                    }
+            // Rootfs Repository
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = context.getString(R.string.home_rootfs_section),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = context.getString(R.string.home_rootfs_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
                 }
 
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    contentPadding = PaddingValues(0.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     items(CuratedRootfsRepos.presets, key = { it.id }) { repo ->
                         HomeRootfsRepoCard(
@@ -745,15 +619,17 @@ private fun HomeTabContent(
                             onClick = onNavigateToRootfsRepo,
                             modifier = Modifier
                                 .width(148.dp)
-                                .height(156.dp),
+                                .height(132.dp),
                             shape = RoundedCornerShape(16.dp),
-                            color = Color.Transparent,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            border = BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+                            )
                         ) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
                                     .padding(16.dp),
                                 verticalArrangement = Arrangement.SpaceBetween
                             ) {
@@ -761,14 +637,14 @@ private fun HomeTabContent(
                                     imageVector = Icons.Default.CloudDownload,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(26.dp)
+                                    modifier = Modifier.size(22.dp)
                                 )
                                 Text(
                                     text = context.getString(R.string.home_rootfs_browse_all),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontFamily = SpaceGrotesk,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -776,23 +652,13 @@ private fun HomeTabContent(
                 }
             }
 
-            // Appearance + rest
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .graphicsLayer {
-                        alpha = restAlpha
-                        translationY = restOffset
-                    }
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 22.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            // Appearance — keep theme modes + palette + custom editor
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         text = context.getString(R.string.home_appearance_section),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
                     )
                     Text(
                         text = context.getString(R.string.home_appearance_subtitle),
@@ -832,9 +698,12 @@ private fun HomeTabContent(
                 }
 
                 Surface(
-                    shape = RoundedCornerShape(22.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                    )
                 ) {
                     AccentColorPicker(
                         selectedPalette = themeState.themePalette,
@@ -850,9 +719,12 @@ private fun HomeTabContent(
 
                 Surface(
                     onClick = { showThemeEditor = true },
-                    shape = RoundedCornerShape(18.dp),
-                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.25f)),
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -865,13 +737,13 @@ private fun HomeTabContent(
                         Icon(
                             imageVector = Icons.Default.Palette,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.secondary
+                            tint = MaterialTheme.colorScheme.primary
                         )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = context.getString(R.string.theme_create_cta),
                                 style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.SemiBold
                             )
                             Text(
                                 text = context.getString(R.string.theme_create_subtitle),
@@ -883,22 +755,22 @@ private fun HomeTabContent(
                         Icon(
                             imageVector = Icons.Default.ChevronRight,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                         )
                     }
                 }
-
-                if (isRootAvailable) {
-                    HomeQuickAction(
-                        icon = Icons.Default.Dashboard,
-                        label = context.getString(R.string.panel),
-                        description = context.getString(R.string.home_quick_panel_desc),
-                        onClick = onNavigateToControlPanel
-                    )
-                }
-                SystemInfoCard(refreshTrigger = refreshTrigger)
-                HelpCard()
             }
+
+            if (isRootAvailable) {
+                HomeQuickAction(
+                    icon = Icons.Default.Dashboard,
+                    label = context.getString(R.string.panel),
+                    description = context.getString(R.string.home_quick_panel_desc),
+                    onClick = onNavigateToControlPanel
+                )
+            }
+            SystemInfoCard(refreshTrigger = refreshTrigger)
+            HelpCard()
         }
     }
 
@@ -916,111 +788,6 @@ private fun HomeTabContent(
 }
 
 @Composable
-private fun HomeLivePulse(
-    runningCount: Int,
-    containerCount: Int,
-    modifier: Modifier = Modifier
-) {
-    val active = runningCount > 0
-    val infinite = rememberInfiniteTransition(label = "livePulse")
-    val pulse by infinite.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(900, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseAlpha"
-    )
-    val scale by infinite.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.35f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(900, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseScale"
-    )
-
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        border = BorderStroke(
-            1.dp,
-            if (active) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.45f)
-            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(22.dp)) {
-                if (active) {
-                    Box(
-                        modifier = Modifier
-                            .size(14.dp)
-                            .graphicsLayer {
-                                scaleX = scale
-                                scaleY = scale
-                                alpha = pulse * 0.45f
-                            }
-                            .background(
-                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f),
-                                CircleShape
-                            )
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .background(
-                            if (active) MaterialTheme.colorScheme.tertiary
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                            CircleShape
-                        )
-                )
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = LocalContext.current.getString(R.string.home_live_pulse),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontFamily = JetBrainsMono,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    letterSpacing = 1.2.sp
-                )
-                Text(
-                    text = if (active) {
-                        LocalContext.current.getString(R.string.home_live_active, runningCount)
-                    } else {
-                        LocalContext.current.getString(R.string.home_live_idle)
-                    },
-                    style = MaterialTheme.typography.titleMedium,
-                    fontFamily = SpaceGrotesk,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            Text(
-                text = LocalContext.current.getString(
-                    R.string.home_spaces_live,
-                    containerCount,
-                    runningCount
-                ),
-                style = MaterialTheme.typography.labelLarge,
-                fontFamily = JetBrainsMono,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-    }
-}
-
-@Composable
 private fun HomeRootfsRepoCard(
     name: String,
     description: String,
@@ -1030,62 +797,40 @@ private fun HomeRootfsRepoCard(
     Surface(
         onClick = onClick,
         modifier = Modifier
-            .width(208.dp)
-            .height(156.dp),
+            .width(188.dp)
+            .height(132.dp),
         shape = RoundedCornerShape(16.dp),
-        color = Color.Transparent,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.28f))
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.linearGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.55f),
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                        )
-                    )
-                )
+                .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .width(4.dp)
-                    .fillMaxHeight()
-                    .background(MaterialTheme.colorScheme.primary)
+            Text(
+                text = category,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium
             )
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(start = 16.dp, end = 14.dp, top = 14.dp, bottom = 14.dp),
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = category.uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = JetBrainsMono,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    letterSpacing = 1.6.sp
+                    text = name,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontFamily = SpaceGrotesk,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontFamily = SpaceGrotesk,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }
@@ -1138,15 +883,14 @@ private fun HomeMetricTile(
 ) {
     Surface(
         onClick = onClick,
-        modifier = modifier.height(128.dp),
-        shape = RoundedCornerShape(18.dp),
-        color = Color.Transparent,
-        border = BorderStroke(1.dp, accent.copy(alpha = 0.35f))
+        modifier = modifier.height(104.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(accent.copy(alpha = 0.06f))
                 .padding(14.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
@@ -1154,26 +898,24 @@ private fun HomeMetricTile(
                 imageVector = icon,
                 contentDescription = null,
                 tint = accent,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(18.dp)
             )
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = value.toString(),
-                    style = MaterialTheme.typography.headlineLarge,
+                    style = MaterialTheme.typography.headlineSmall,
                     fontFamily = SpaceGrotesk,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    letterSpacing = (-1).sp
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = hint,
                     style = MaterialTheme.typography.labelSmall,
-                    fontFamily = JetBrainsMono,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
                 )
             }
@@ -1225,11 +967,11 @@ private fun HomeQuickAction(
     Surface(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
         )
     ) {
         Row(
@@ -1240,9 +982,8 @@ private fun HomeQuickAction(
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.22f))
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
             ) {
                 Icon(
                     imageVector = icon,
