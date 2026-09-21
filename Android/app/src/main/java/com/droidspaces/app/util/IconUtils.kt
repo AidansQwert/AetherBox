@@ -21,6 +21,7 @@ object IconUtils {
             s.contains("Artix", true) -> R.drawable.ic_artix
             (s.contains("Arch-", true) || s.contains("Arch_", true) || s.contains("Arch ", true) || s.equals("Arch", true)) -> R.drawable.ic_arch
             s.contains("SteamOS", true) || s.contains("Steam OS", true) || s.equals("Holo", true) || s.contains("Holo", true) -> R.drawable.ic_arch
+            s.contains("Omarchy", true) || s.contains("Hyprland", true) -> R.drawable.ic_arch
             s.contains("Fedora", true) -> R.drawable.ic_fedora
             s.contains("NixOS", true) -> R.drawable.ic_nixos
             s.contains("OpenWrt", true) -> R.drawable.ic_openwrt

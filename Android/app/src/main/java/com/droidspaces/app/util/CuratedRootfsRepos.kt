@@ -57,6 +57,14 @@ object CuratedRootfsRepos {
             category = "community"
         ),
         CuratedRootfsRepo(
+            id = "omarchy-hyprland",
+            name = "Omarchy / Hyprland",
+            description = "Unofficial Omarchy Android aarch64 (Hyprland) guest rootfs",
+            author = "BlackFireAlex / AetherBox",
+            url = "https://raw.githubusercontent.com/AidansQwert/AetherBox/main/Android/rootfs-feeds/omarchy.json",
+            category = "community"
+        ),
+        CuratedRootfsRepo(
             id = "aetherbox-lxc",
             name = "AetherBox LXC Picks",
             description = "Curated Fedora, Void, Rocky, Alma, Gentoo, Devuan, Kali",
@@ -97,6 +105,7 @@ object CuratedRootfsRepos {
         "AidansQwert/AetherBox@main:Android/rootfs-feeds/steamos-arch.json" to "Holo/SteamOS",
         "AidansQwert/AetherBox@main:Android/rootfs-feeds/xfce-desktop.json" to "XFCE4",
         "AidansQwert/AetherBox@main:Android/rootfs-feeds/desktop-community.json" to "Desktop",
+        "AidansQwert/AetherBox@main:Android/rootfs-feeds/omarchy.json" to "Omarchy",
         "seriaTvT/Droidspaces-rootfs-builder" to "seriaTvT",
         "shimabde/Droidspaces-rootfs-builder" to "shimabde",
         "xys20071111/Droidspaces-openwrt-rootfs-builder" to "OpenWrt"

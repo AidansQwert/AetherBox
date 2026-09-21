@@ -1,0 +1,15 @@
+[
+  {
+    "author": "BlackFireAlex (via AetherBox)",
+    "name": "Omarchy Android - aarch64",
+    "distro": "Omarchy",
+    "description": "Unofficial Omarchy (Hyprland) ARM64 guest rootfs from BlackFireAlex/omarchy-android v0.1.1. Experimental in AetherBox; upstream targets Termux/PRoot. About 4 GB installed.",
+    "architecture": "aarch64",
+    "file": "Omarchy-Android-aarch64-0.1.1",
+    "download_url": "https://github.com/AidansQwert/AetherBox/releases/download/omarchy-android-aarch64-0.1.1/Omarchy-Android-aarch64-0.1.1-rootfs.tar.xz",
+    "sha256": "dbee00c0cb41f6b213c153ff4dc1c0898ba99dd0543ac13cef1601820366e2c5",
+    "size_bytes": 1181733044,
+    "version": "0.1.1",
+    "build_date": "20260921"
+  }
+]

@@ -71,6 +71,9 @@ object RootfsRepository {
     private const val DESKTOP_FEED_URL =
         "https://raw.githubusercontent.com/AidansQwert/AetherBox/main/Android/rootfs-feeds/desktop-community.json"
     private const val DESKTOP_FEED_NAME = "Desktop Community"
+    private const val OMARCHY_FEED_URL =
+        "https://raw.githubusercontent.com/AidansQwert/AetherBox/main/Android/rootfs-feeds/omarchy.json"
+    private const val OMARCHY_FEED_NAME = "Omarchy / Hyprland"
     private const val CONNECT_TIMEOUT = 10_000
     private const val READ_TIMEOUT    = 15_000
 
@@ -85,6 +88,7 @@ object RootfsRepository {
                 add(async { fetchSingleRepo(HOLO_FEED_URL, HOLO_FEED_NAME) })
                 add(async { fetchSingleRepo(XFCE_FEED_URL, XFCE_FEED_NAME) })
                 add(async { fetchSingleRepo(DESKTOP_FEED_URL, DESKTOP_FEED_NAME) })
+                add(async { fetchSingleRepo(OMARCHY_FEED_URL, OMARCHY_FEED_NAME) })
             }
             customRepos.forEach { (name, url) ->
                 add(async { fetchSingleRepo(url, name) })
