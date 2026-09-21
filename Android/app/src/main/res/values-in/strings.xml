@@ -40,7 +40,7 @@
     <string name="home_appearance_section">Tampilan</string>
     <string name="home_appearance_subtitle">Layout, mode, palet, atau buat sendiri</string>
     <string name="home_rootfs_section">Rootfs Repository</string>
-    <string name="home_rootfs_subtitle">Holo Core, XFCE4, Arch, Debian, Ubuntu, Kali &amp; lainnya</string>
+    <string name="home_rootfs_subtitle">Holo Core, XFCE4, KDE, Anland, LXC &amp; lainnya</string>
     <string name="home_rootfs_browse_all">Buka katalog</string>
     <string name="home_layout_section">Layout beranda</string>
     <string name="home_layout_subtitle">Pilih susunan layar beranda</string>

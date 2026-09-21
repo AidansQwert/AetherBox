@@ -42,11 +42,19 @@ object CuratedRootfsRepos {
         ),
         CuratedRootfsRepo(
             id = "xfce-desktop",
-            name = "XFCE Desktop",
-            description = "Debian 13, Ubuntu 24.04 & Kali with XFCE4 for Termux:X11",
+            name = "XFCE / bspwm Desktop",
+            description = "Debian, Ubuntu, Kali XFCE4 + Arch/Artix/Ubuntu bspwm",
             author = "Droidspaces / AetherBox",
             url = "https://raw.githubusercontent.com/AidansQwert/AetherBox/main/Android/rootfs-feeds/xfce-desktop.json",
             category = "official"
+        ),
+        CuratedRootfsRepo(
+            id = "desktop-community",
+            name = "Desktop Community",
+            description = "KDE / Anland Next Wayland / Niri — Goldzxcbug, KDJCPM, sbydda",
+            author = "Community",
+            url = "https://raw.githubusercontent.com/AidansQwert/AetherBox/main/Android/rootfs-feeds/desktop-community.json",
+            category = "community"
         ),
         CuratedRootfsRepo(
             id = "aetherbox-lxc",
@@ -88,6 +96,7 @@ object CuratedRootfsRepos {
         "Droidspaces/linuxcontainers-mirror" to "LXC mirror",
         "AidansQwert/AetherBox@main:Android/rootfs-feeds/steamos-arch.json" to "Holo/SteamOS",
         "AidansQwert/AetherBox@main:Android/rootfs-feeds/xfce-desktop.json" to "XFCE4",
+        "AidansQwert/AetherBox@main:Android/rootfs-feeds/desktop-community.json" to "Desktop",
         "seriaTvT/Droidspaces-rootfs-builder" to "seriaTvT",
         "shimabde/Droidspaces-rootfs-builder" to "shimabde",
         "xys20071111/Droidspaces-openwrt-rootfs-builder" to "OpenWrt"

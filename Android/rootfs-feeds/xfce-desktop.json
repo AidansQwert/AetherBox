@@ -1,6 +1,32 @@
 [
   {
     "author": "Droidspaces developers",
+    "name": "Arch Linux - bspwm",
+    "distro": "Arch",
+    "description": "Arch Linux rootfs with the bspwm tiling window manager (touch-friendly Catppuccin desktop). Runs on Kernel 5.10 and above only.",
+    "architecture": "aarch64",
+    "file": "Arch-bspwm-Kernel-5.10-and-up",
+    "download_url": "https://github.com/Droidspaces/Droidspaces-rootfs-builder/releases/download/v20260920-040926/Arch-bspwm-Kernel-5.10-and-up-Droidspaces-rootfs-aarch64-20260920-v20260920-040926.tar.xz",
+    "sha256": "8941fa9f02f2385576f544ea358b96161684ef3b305fe73ae8760c1f39e66c1a",
+    "size_bytes": 363666196,
+    "version": "v20260920-040926",
+    "build_date": "20260920"
+  },
+  {
+    "author": "Droidspaces developers",
+    "name": "Artix Linux - bspwm",
+    "distro": "Artix",
+    "description": "Artix Linux (Armtix) rootfs with the bspwm tiling window manager (touch-friendly Catppuccin desktop). Uses OpenRC.",
+    "architecture": "aarch64",
+    "file": "Artix-bspwm-OpenRC",
+    "download_url": "https://github.com/Droidspaces/Droidspaces-rootfs-builder/releases/download/v20260920-040926/Artix-bspwm-OpenRC-Droidspaces-rootfs-aarch64-20260920-v20260920-040926.tar.xz",
+    "sha256": "d915fbdba2843b196bc7d8591695d998d8ec24a567eafba5dbbbe1b671810f8d",
+    "size_bytes": 443753544,
+    "version": "v20260920-040926",
+    "build_date": "20260920"
+  },
+  {
+    "author": "Droidspaces developers",
     "name": "Debian 13 GNU/Linux (Trixie) - XFCE",
     "distro": "Debian",
     "description": "Debian 13 rootfs with basic packages, development tools, Docker, XFCE desktop environment.",
@@ -35,6 +61,19 @@
     "download_url": "https://github.com/Droidspaces/Droidspaces-rootfs-builder/releases/download/v20260920-040926/Ubuntu-24.04-XFCE-Droidspaces-rootfs-aarch64-20260920-v20260920-040926.tar.xz",
     "sha256": "feddddbac9e5532db8a43d81fb8c7d38b75b72df4103987a9c2ff8521fbe4095",
     "size_bytes": 567325552,
+    "version": "v20260920-040926",
+    "build_date": "20260920"
+  },
+  {
+    "author": "Droidspaces developers",
+    "name": "Ubuntu 24.04.04 LTS - bspwm",
+    "distro": "Ubuntu",
+    "description": "Ubuntu 24.04 rootfs with basic packages and the bspwm tiling window manager (touch-friendly Catppuccin desktop).",
+    "architecture": "aarch64",
+    "file": "Ubuntu-24.04-bspwm",
+    "download_url": "https://github.com/Droidspaces/Droidspaces-rootfs-builder/releases/download/v20260920-040926/Ubuntu-24.04-bspwm-Droidspaces-rootfs-aarch64-20260920-v20260920-040926.tar.xz",
+    "sha256": "59aa0356de59181a6b121dbda76ec89a510410c4a5b7af9e4e9db481611bba23",
+    "size_bytes": 389618556,
     "version": "v20260920-040926",
     "build_date": "20260920"
   }

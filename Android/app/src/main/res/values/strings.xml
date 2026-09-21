@@ -122,7 +122,7 @@
     <string name="theme_hue_secondary">Secondary</string>
     <string name="theme_hue_tertiary">Tertiary</string>
     <string name="home_rootfs_section">Rootfs Repository</string>
-    <string name="home_rootfs_subtitle">Holo Core, XFCE4, Arch, Debian, Ubuntu, Kali &amp; more</string>
+    <string name="home_rootfs_subtitle">Holo Core, XFCE4, KDE, Anland, LXC &amp; more</string>
     <string name="home_rootfs_browse_all">Open catalog</string>
     <string name="home_appearance_section">Look</string>
     <string name="home_appearance_subtitle">Layout, mode, palette, or craft your own</string>
