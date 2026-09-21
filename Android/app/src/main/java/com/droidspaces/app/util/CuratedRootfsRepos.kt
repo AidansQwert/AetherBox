@@ -41,6 +41,14 @@ object CuratedRootfsRepos {
             category = "community"
         ),
         CuratedRootfsRepo(
+            id = "xfce-desktop",
+            name = "XFCE Desktop",
+            description = "Debian 13, Ubuntu 24.04 & Kali with XFCE4 for Termux:X11",
+            author = "Droidspaces / AetherBox",
+            url = "https://raw.githubusercontent.com/AidansQwert/AetherBox/main/Android/rootfs-feeds/xfce-desktop.json",
+            category = "official"
+        ),
+        CuratedRootfsRepo(
             id = "aetherbox-lxc",
             name = "AetherBox LXC Picks",
             description = "Curated Fedora, Void, Rocky, Alma, Gentoo, Devuan, Kali",
@@ -79,6 +87,7 @@ object CuratedRootfsRepos {
         "Droidspaces/Droidspaces-rootfs-builder" to "Official",
         "Droidspaces/linuxcontainers-mirror" to "LXC mirror",
         "AidansQwert/AetherBox@main:Android/rootfs-feeds/steamos-arch.json" to "Holo/SteamOS",
+        "AidansQwert/AetherBox@main:Android/rootfs-feeds/xfce-desktop.json" to "XFCE4",
         "seriaTvT/Droidspaces-rootfs-builder" to "seriaTvT",
         "shimabde/Droidspaces-rootfs-builder" to "shimabde",
         "xys20071111/Droidspaces-openwrt-rootfs-builder" to "OpenWrt"

@@ -65,6 +65,9 @@ object RootfsRepository {
     private const val HOLO_FEED_URL =
         "https://raw.githubusercontent.com/AidansQwert/AetherBox/main/Android/rootfs-feeds/steamos-arch.json"
     private const val HOLO_FEED_NAME = "Holo / SteamOS"
+    private const val XFCE_FEED_URL =
+        "https://raw.githubusercontent.com/AidansQwert/AetherBox/main/Android/rootfs-feeds/xfce-desktop.json"
+    private const val XFCE_FEED_NAME = "XFCE Desktop"
     private const val CONNECT_TIMEOUT = 10_000
     private const val READ_TIMEOUT    = 15_000
 
@@ -77,6 +80,7 @@ object RootfsRepository {
             if (prefs.includeCommunityRepos) {
                 add(async { fetchCommunityRepo(context) })
                 add(async { fetchSingleRepo(HOLO_FEED_URL, HOLO_FEED_NAME) })
+                add(async { fetchSingleRepo(XFCE_FEED_URL, XFCE_FEED_NAME) })
             }
             customRepos.forEach { (name, url) ->
                 add(async { fetchSingleRepo(url, name) })

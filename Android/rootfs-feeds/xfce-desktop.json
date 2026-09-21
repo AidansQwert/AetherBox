@@ -1,0 +1,41 @@
+[
+  {
+    "author": "Droidspaces developers",
+    "name": "Debian 13 GNU/Linux (Trixie) - XFCE",
+    "distro": "Debian",
+    "description": "Debian 13 rootfs with basic packages, development tools, Docker, XFCE desktop environment.",
+    "architecture": "aarch64",
+    "file": "Debian-13-XFCE",
+    "download_url": "https://github.com/Droidspaces/Droidspaces-rootfs-builder/releases/download/v20260920-040926/Debian-13-XFCE-Droidspaces-rootfs-aarch64-20260920-v20260920-040926.tar.xz",
+    "sha256": "7f569a54894915b3993a018ddd7586a84396c554707d4db6cb322acf78d48d8a",
+    "size_bytes": 632181352,
+    "version": "v20260920-040926",
+    "build_date": "20260920"
+  },
+  {
+    "author": "Droidspaces developers",
+    "name": "Kali Linux - XFCE",
+    "distro": "Kali",
+    "description": "Kali Linux rootfs with basic packages, development tools, Docker, and XFCE desktop environment.",
+    "architecture": "aarch64",
+    "file": "Kali-Linux-XFCE",
+    "download_url": "https://github.com/Droidspaces/Droidspaces-rootfs-builder/releases/download/v20260920-040926/Kali-Linux-XFCE-Droidspaces-rootfs-aarch64-20260920-v20260920-040926.tar.xz",
+    "sha256": "b04a2823ad23fb73bac5f3ad1737c20a4840f820f17b6591f6e54668946ee0cb",
+    "size_bytes": 1016426376,
+    "version": "v20260920-040926",
+    "build_date": "20260920"
+  },
+  {
+    "author": "Droidspaces developers",
+    "name": "Ubuntu 24.04.04 LTS - XFCE",
+    "distro": "Ubuntu",
+    "description": "Ubuntu 24.04 rootfs with basic packages, development tools, Docker and XFCE desktop environment.",
+    "architecture": "aarch64",
+    "file": "Ubuntu-24.04-XFCE",
+    "download_url": "https://github.com/Droidspaces/Droidspaces-rootfs-builder/releases/download/v20260920-040926/Ubuntu-24.04-XFCE-Droidspaces-rootfs-aarch64-20260920-v20260920-040926.tar.xz",
+    "sha256": "feddddbac9e5532db8a43d81fb8c7d38b75b72df4103987a9c2ff8521fbe4095",
+    "size_bytes": 567325552,
+    "version": "v20260920-040926",
+    "build_date": "20260920"
+  }
+]
