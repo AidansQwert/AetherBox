@@ -285,7 +285,7 @@ Droidspaces supports Android devices running Linux kernel **3.10 and above**:
 
 #### Rooting Requirements
 
-Your device must be rooted. The following rooting methods have been tested:
+Your device must be rooted for **this** app. (No root? See [AetherBox Lite](https://github.com/AidansQwert/AetherBox-Lite).) The following rooting methods have been tested:
 
 | Root Method | Status | Notes |
 |-------------|--------|-------|
@@ -357,6 +357,16 @@ sudo ./droidspaces check
 
 - [Android Installation Guide](Documentation/Installation-Android.md)
 - [Linux Installation Guide](Documentation/Installation-Linux.md)
+
+### No root?
+
+AetherBox itself **requires root** (Magisk / KernelSU / APatch). Guest Linux images and rootfs catalogs (Omarchy, XFCE, community feeds under `Android/rootfs-feeds/`) stay in **this** repo and its [releases](https://github.com/AidansQwert/AetherBox/releases).
+
+For phones **without root**, use the separate companion:
+
+- **[AetherBox Lite](https://github.com/AidansQwert/AetherBox-Lite)** — guided Termux + PRoot / Omarchy setup, optional [Shizuku](https://shizuku.rikka.app/), with an on-launch modal that explains the limits
+
+Lite is **not** native AetherBox. It does not run the `droidspaces` binary or real Linux namespaces. Do not expect rooted GPU, mounts, or cgroup behaviour. Prefer the full app when you have root.
 
 ---
 
