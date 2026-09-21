@@ -121,8 +121,8 @@
     <string name="theme_hue_primary">Primary</string>
     <string name="theme_hue_secondary">Secondary</string>
     <string name="theme_hue_tertiary">Tertiary</string>
-    <string name="home_rootfs_section">Image feeds</string>
-    <string name="home_rootfs_subtitle">Community catalogs — Holo, Arch, Debian &amp; more</string>
+    <string name="home_rootfs_section">Rootfs Repository</string>
+    <string name="home_rootfs_subtitle">Holo Core, Arch, Debian, Ubuntu, Kali &amp; more</string>
     <string name="home_rootfs_browse_all">Open catalog</string>
     <string name="home_appearance_section">Look</string>
     <string name="home_appearance_subtitle">Layout, mode, palette, or craft your own</string>
