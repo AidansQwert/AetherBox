@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.droidspaces.app.R
 import com.droidspaces.app.util.AppUpdateChecker
 import com.droidspaces.app.util.AppUpdateInfo
+import com.droidspaces.app.util.AppUpdateNotifier
 import com.droidspaces.app.util.BinaryInstaller
 import com.droidspaces.app.util.Constants
 import com.droidspaces.app.util.DroidspacesBackendStatus
@@ -308,13 +309,27 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
     fun checkAppUpdate() {
         if (!prefsManager.checkAppUpdates) {
             appUpdate = null
+            AppUpdateNotifier.cancel(getApplication())
             return
         }
         viewModelScope.launch {
-            appUpdate = withContext(Dispatchers.IO) {
+            val update = withContext(Dispatchers.IO) {
                 AppUpdateChecker.fetchLatest(getApplication())
             }
+            appUpdate = update
+            if (update != null) {
+                AppUpdateNotifier.show(getApplication(), update)
+            } else {
+                AppUpdateNotifier.cancel(getApplication())
+            }
         }
+    }
+
+    fun dismissAppUpdate() {
+        val update = appUpdate ?: return
+        prefsManager.dismissedAppUpdateTag = update.version
+        appUpdate = null
+        AppUpdateNotifier.cancel(getApplication())
     }
 
     init {

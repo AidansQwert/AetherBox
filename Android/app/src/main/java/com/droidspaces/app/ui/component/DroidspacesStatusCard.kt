@@ -41,6 +41,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,17 +49,21 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.droidspaces.app.R
 import com.droidspaces.app.ui.theme.JetBrainsMono
 import com.droidspaces.app.util.AnimationUtils
+import com.droidspaces.app.util.ApkInstallStatus
+import com.droidspaces.app.util.ApkUpdateInstaller
 import com.droidspaces.app.util.AppUpdateInfo
 import com.droidspaces.app.util.SystemInfoManager
+import kotlinx.coroutines.launch
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 
 enum class DroidspacesStatus {
     Working,
@@ -77,6 +82,7 @@ fun DroidspacesStatusCard(
     isRootAvailable: Boolean = true,
     refreshTrigger: Int = 0,
     appUpdate: AppUpdateInfo? = null,
+    onDismissAppUpdate: () -> Unit = {},
     onClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -353,43 +359,151 @@ fun DroidspacesStatusCard(
                 ) {
                     val update = appUpdate ?: return@AnimatedVisibility
                     val updateColor = MaterialTheme.colorScheme.tertiary
+                    var downloading by remember(update.version) { mutableStateOf(false) }
+                    var downloadProgress by remember(update.version) { mutableStateOf(0) }
+                    var downloadError by remember(update.version) { mutableStateOf<String?>(null) }
+                    val scope = rememberCoroutineScope()
+
                     Surface(
-                        onClick = {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(update.releaseUrl)))
-                        },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
                         color = updateColor.copy(alpha = 0.12f),
                         border = BorderStroke(1.dp, updateColor.copy(alpha = 0.22f))
                     ) {
-                        Row(
+                        Column(
                             modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.SystemUpdate,
-                                contentDescription = null,
-                                tint = updateColor,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = context.getString(R.string.app_update_message, update.version),
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Medium,
-                                color = updateColor,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                                contentDescription = null,
-                                tint = updateColor,
-                                modifier = Modifier.size(16.dp)
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.SystemUpdate,
+                                    contentDescription = null,
+                                    tint = updateColor,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = context.getString(
+                                        R.string.app_update_message,
+                                        update.displayVersion
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = updateColor,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            if (downloadError != null) {
+                                Text(
+                                    text = downloadError!!,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                            if (downloading) {
+                                Text(
+                                    text = context.getString(
+                                        R.string.app_update_downloading_progress,
+                                        downloadProgress
+                                    ),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = updateColor
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Surface(
+                                    onClick = {
+                                        ApkUpdateInstaller.openReleasePage(context, update.releaseUrl)
+                                    },
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = updateColor.copy(alpha = 0.16f),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                                            contentDescription = null,
+                                            tint = updateColor,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = context.getString(R.string.app_update_notes),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = updateColor,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+                                Surface(
+                                    onClick = download@{
+                                        val apkUrl = update.apkUrl
+                                        if (apkUrl.isNullOrBlank()) {
+                                            ApkUpdateInstaller.openReleasePage(context, update.releaseUrl)
+                                            return@download
+                                        }
+                                        if (downloading) return@download
+                                        downloading = true
+                                        downloadError = null
+                                        scope.launch {
+                                            ApkUpdateInstaller.downloadAndInstall(
+                                                context,
+                                                apkUrl,
+                                                update.displayVersion
+                                            ).collect { status ->
+                                                when (status) {
+                                                    is ApkInstallStatus.Progress ->
+                                                        downloadProgress = status.percent
+                                                    is ApkInstallStatus.Ready ->
+                                                        downloading = false
+                                                    is ApkInstallStatus.Failed -> {
+                                                        downloading = false
+                                                        downloadError = status.reason
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = updateColor.copy(alpha = 0.28f),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(
+                                        text = context.getString(R.string.app_update_download),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = updateColor,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier
+                                            .padding(horizontal = 10.dp, vertical = 8.dp)
+                                            .fillMaxWidth(),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                                Surface(
+                                    onClick = onDismissAppUpdate,
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.35f)
+                                ) {
+                                    Text(
+                                        text = context.getString(R.string.app_update_later),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = updateColor.copy(alpha = 0.85f),
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
+
 
                 HorizontalDivider(
                     modifier = Modifier

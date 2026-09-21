@@ -1,11 +1,14 @@
 package com.droidspaces.app.util
 
 import android.content.Context
+import org.json.JSONArray
 import org.json.JSONObject
 
 data class AppUpdateInfo(
     val version: String,
-    val releaseUrl: String
+    val displayVersion: String,
+    val releaseUrl: String,
+    val apkUrl: String?
 )
 
 object AppUpdateChecker {
@@ -13,9 +16,9 @@ object AppUpdateChecker {
         "https://api.github.com/repos/AidansQwert/AetherBox/releases/latest"
 
     // Blocking, call from Dispatchers.IO. Null when the installed build is
-    // already current and on any failure, so the banner just stays hidden: an
-    // offline device should see nothing, not a warning.
+    // already current, the tag was dismissed, or on any failure.
     fun fetchLatest(context: Context): AppUpdateInfo? = runCatching {
+        val prefs = PreferencesManager.getInstance(context)
         val body = RootfsRepository.httpGet(LATEST_RELEASE_URL) ?: return null
         val json = JSONObject(body)
         val tag = json.optString("tag_name")
@@ -23,13 +26,45 @@ object AppUpdateChecker {
         val latest = versionNumber(tag) ?: return null
         val current = versionNumber(installed ?: return null) ?: return null
         if (latest <= current) return null
-        AppUpdateInfo(version = tag, releaseUrl = json.optString("html_url"))
+        val dismissed = prefs.dismissedAppUpdateTag
+        if (dismissed.isNotBlank() && versionNumber(dismissed)?.let { it >= latest } == true) {
+            return null
+        }
+        val apkUrl = pickApkAssetUrl(json.optJSONArray("assets"))
+        val display = versionNumber(tag)?.let {
+            Regex("(\\d+)\\.(\\d+)\\.(\\d+)").find(tag)?.value
+        } ?: tag
+        AppUpdateInfo(
+            version = tag,
+            displayVersion = display ?: tag,
+            releaseUrl = json.optString("html_url"),
+            apkUrl = apkUrl
+        )
     }.getOrNull()
 
-    // Release tags are vX.Y.Z and the installed versionName is X.Y.Z, straight
-    // from DS_VERSION in droidspace.h. Pull the first dotted triple out of
-    // either, so a prefix or suffix on the tag never breaks the compare.
-    private fun versionNumber(text: String): Int? =
+    private fun pickApkAssetUrl(assets: JSONArray?): String? {
+        if (assets == null) return null
+        var fallback: String? = null
+        for (i in 0 until assets.length()) {
+            val obj = assets.optJSONObject(i) ?: continue
+            val name = obj.optString("name", "")
+            if (!name.endsWith(".apk", ignoreCase = true)) continue
+            val url = obj.optString("browser_download_url").ifBlank {
+                obj.optString("url")
+            }
+            if (url.isBlank()) continue
+            if (name.contains("universal", ignoreCase = true) ||
+                name.contains("AetherBox", ignoreCase = true)
+            ) {
+                return url
+            }
+            if (fallback == null) fallback = url
+        }
+        return fallback
+    }
+
+    // Release tags are vX.Y.Z and the installed versionName is X.Y.Z.
+    fun versionNumber(text: String): Int? =
         Regex("(\\d+)\\.(\\d+)\\.(\\d+)").find(text)?.let { m ->
             val (major, minor, patch) = m.destructured
             major.toInt() * 10_000 + minor.toInt() * 100 + patch.toInt()

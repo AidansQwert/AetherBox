@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Icon background - darker grey -->
-    <color name="ic_launcher_background">#1A1A1A</color>
+    <!-- Icon background — deep teal ink -->
+    <color name="ic_launcher_background">#0B1F24</color>
 </resources>
-
-

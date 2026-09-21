@@ -274,6 +274,59 @@ class PreferencesManager private constructor(context: Context) {
             prefs.edit().putBoolean(KEY_CHECK_APP_UPDATES, value).apply()
         }
 
+    /** Tag the user dismissed ("remind later"); cleared when a newer tag ships. */
+    var dismissedAppUpdateTag: String
+        get() = prefs.getString(KEY_DISMISSED_APP_UPDATE_TAG, "") ?: ""
+        set(value) {
+            prefs.edit().putString(KEY_DISMISSED_APP_UPDATE_TAG, value).apply()
+        }
+
+    var lastContainerName: String
+        get() = prefs.getString(KEY_LAST_CONTAINER, "") ?: ""
+        set(value) {
+            prefs.edit().putString(KEY_LAST_CONTAINER, value).apply()
+        }
+
+    var pinnedRootfsPresetIds: Set<String>
+        get() {
+            val raw = prefs.getString(KEY_PINNED_ROOTFS_PRESETS, null)
+            if (raw.isNullOrBlank()) {
+                return CuratedRootfsRepos.presets.take(3).map { it.id }.toSet()
+            }
+            return raw.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+        }
+        set(value) {
+            prefs.edit().putString(KEY_PINNED_ROOTFS_PRESETS, value.joinToString(",")).apply()
+        }
+
+    fun togglePinnedRootfsPreset(id: String): Set<String> {
+        val next = pinnedRootfsPresetIds.toMutableSet()
+        if (!next.add(id)) next.remove(id)
+        pinnedRootfsPresetIds = next
+        return next
+    }
+
+    var homeOrbitSlots: String
+        get() = prefs.getString(
+            KEY_HOME_ORBIT_SLOTS,
+            HomeOrbitActionId.DEFAULT_SLOTS.joinToString(",") { it.name }
+        ) ?: HomeOrbitActionId.DEFAULT_SLOTS.joinToString(",") { it.name }
+        set(value) {
+            prefs.edit().putString(KEY_HOME_ORBIT_SLOTS, value).apply()
+        }
+
+    fun setHomeOrbitSlot(index: Int, id: HomeOrbitActionId) {
+        val slots = HomeOrbitActionId.parseSlots(homeOrbitSlots).toMutableList()
+        while (slots.size < 3) slots.add(HomeOrbitActionId.DEFAULT_SLOTS[slots.size])
+        // Keep uniqueness: if id already used elsewhere, swap
+        val existing = slots.indexOf(id)
+        if (existing >= 0 && existing != index) {
+            slots[existing] = slots[index]
+        }
+        slots[index] = id
+        homeOrbitSlots = slots.take(3).joinToString(",") { it.name }
+    }
+
     private fun booleanPrefFlow(key: String, default: Boolean): Flow<Boolean> = callbackFlow {
         trySend(prefs.getBoolean(key, default))
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changedKey ->
@@ -601,6 +654,10 @@ class PreferencesManager private constructor(context: Context) {
         const val KEY_SYMLINK_ENABLED = Constants.KEY_SYMLINK_ENABLED
         const val KEY_TREAT_AS_64BIT = Constants.KEY_TREAT_AS_64BIT
         const val KEY_CHECK_APP_UPDATES = Constants.KEY_CHECK_APP_UPDATES
+        private const val KEY_DISMISSED_APP_UPDATE_TAG = Constants.KEY_DISMISSED_APP_UPDATE_TAG
+        private const val KEY_LAST_CONTAINER = Constants.KEY_LAST_CONTAINER
+        private const val KEY_PINNED_ROOTFS_PRESETS = Constants.KEY_PINNED_ROOTFS_PRESETS
+        private const val KEY_HOME_ORBIT_SLOTS = Constants.KEY_HOME_ORBIT_SLOTS
         const val KEY_CONTAINER_LOG_PREFIX = Constants.KEY_CONTAINER_LOG_PREFIX
         private const val KEY_CONTAINER_OS_INFO_PREFIX = Constants.KEY_CONTAINER_OS_INFO_PREFIX
         private const val KEY_CACHED_CONTAINER_NAMES = Constants.KEY_CACHED_CONTAINER_NAMES

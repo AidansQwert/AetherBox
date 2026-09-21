@@ -1,7 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Icon background - darker grey (static, no Monet theming) -->
-    <color name="ic_launcher_background">#2E2E2E</color>
+    <color name="ic_launcher_background">#0B1F24</color>
 </resources>
-
-

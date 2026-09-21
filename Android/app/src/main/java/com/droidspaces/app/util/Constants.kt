@@ -58,6 +58,10 @@ object Constants {
     const val KEY_DAEMON_MODE_ENABLED = "daemon_mode_enabled"
     const val KEY_TREAT_AS_64BIT = "treat_as_64bit"
     const val KEY_CHECK_APP_UPDATES = "check_app_updates"
+    const val KEY_DISMISSED_APP_UPDATE_TAG = "dismissed_app_update_tag"
+    const val KEY_LAST_CONTAINER = "last_container_name"
+    const val KEY_PINNED_ROOTFS_PRESETS = "pinned_rootfs_presets"
+    const val KEY_HOME_ORBIT_SLOTS = "home_orbit_slots"
 
     // Container log cache prefix
     const val KEY_CONTAINER_LOG_PREFIX = "container_log_"

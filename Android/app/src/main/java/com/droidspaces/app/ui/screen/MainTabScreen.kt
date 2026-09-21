@@ -119,7 +119,10 @@ import com.droidspaces.app.ui.viewmodel.ContainerViewModel
 import com.droidspaces.app.util.AppUpdateInfo
 import com.droidspaces.app.util.CuratedRootfsRepos
 import com.droidspaces.app.util.DroidspacesBackendStatus
+import com.droidspaces.app.util.HomeOrbitActionId
+import com.droidspaces.app.util.HomeOrbitCatalog
 import com.droidspaces.app.util.PreferencesManager
+import androidx.compose.foundation.combinedClickable
 import com.droidspaces.app.util.SystemInfoManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -433,6 +436,7 @@ fun MainTabScreen(
                         TabItem.Home -> {
                             HomeTabContent(
                                 appUpdate = appStateViewModel.appUpdate,
+                                onDismissAppUpdate = { appStateViewModel.dismissAppUpdate() },
                                 droidspacesStatus = droidspacesStatus,
                                 isChecking = isChecking,
                                 isRootAvailable = appStateViewModel.isRootAvailable,
@@ -453,6 +457,9 @@ fun MainTabScreen(
                                         pagerState.scrollToPage(tabs.indexOf(TabItem.Containers))
                                     }
                                 },
+                                onNavigateToSettings = onNavigateToSettings,
+                                onNavigateToContainerDetails = onNavigateToContainerDetails,
+                                knownContainerNames = containerViewModel.containerList.map { it.name },
                                 containerCount = containerCount,
                                 runningCount = runningCount,
                                 onRefresh = { performRefresh(TabItem.Home) },
@@ -518,6 +525,7 @@ fun MainTabScreen(
 @Composable
 private fun HomeTabContent(
     appUpdate: AppUpdateInfo?,
+    onDismissAppUpdate: () -> Unit,
     droidspacesStatus: DroidspacesStatus,
     isChecking: Boolean,
     isRootAvailable: Boolean,
@@ -525,6 +533,9 @@ private fun HomeTabContent(
     onNavigateToContainers: () -> Unit,
     onNavigateToControlPanel: () -> Unit,
     onNavigateToRootfsRepo: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToContainerDetails: (String) -> Unit,
+    knownContainerNames: List<String>,
     containerCount: Int,
     runningCount: Int,
     onRefresh: suspend () -> Unit,
@@ -538,6 +549,10 @@ private fun HomeTabContent(
     var idleTaps by remember(droidspacesStatus) { mutableStateOf(0) }
     var showThemeEditor by remember { mutableStateOf(false) }
     var showLook by remember { mutableStateOf(homeLayout.showAppearanceExpanded()) }
+    var orbitSlotsRaw by remember { mutableStateOf(prefsManager.homeOrbitSlots) }
+    var pinnedRootfs by remember { mutableStateOf(prefsManager.pinnedRootfsPresetIds) }
+    val lastContainer = prefsManager.lastContainerName
+    val resumeTarget = lastContainer.takeIf { it.isNotBlank() && it in knownContainerNames }
 
     LaunchedEffect(homeLayout) {
         showLook = homeLayout.showAppearanceExpanded()
@@ -693,31 +708,82 @@ private fun HomeTabContent(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                 )
                             }
+                            val orbitSlots = HomeOrbitActionId.parseSlots(orbitSlotsRaw)
+                            val accents = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.tertiary,
+                                MaterialTheme.colorScheme.secondary
+                            )
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                HomeOrbitAction(
-                                    modifier = Modifier.weight(1f),
-                                    icon = Icons.Default.Layers,
-                                    label = context.getString(R.string.home_orbit_spaces),
-                                    accent = MaterialTheme.colorScheme.primary,
-                                    onClick = onNavigateToContainers
-                                )
-                                HomeOrbitAction(
-                                    modifier = Modifier.weight(1f),
-                                    icon = Icons.Default.RocketLaunch,
-                                    label = context.getString(R.string.home_orbit_live),
-                                    accent = MaterialTheme.colorScheme.tertiary,
-                                    onClick = onNavigateToControlPanel
-                                )
-                                HomeOrbitAction(
-                                    modifier = Modifier.weight(1f),
-                                    icon = Icons.Default.CloudDownload,
-                                    label = context.getString(R.string.home_orbit_images),
-                                    accent = MaterialTheme.colorScheme.secondary,
-                                    onClick = onNavigateToRootfsRepo
-                                )
+                                orbitSlots.forEachIndexed { index, actionId ->
+                                    val def = HomeOrbitCatalog.def(actionId)
+                                    val enabled = when (actionId) {
+                                        HomeOrbitActionId.RESUME -> resumeTarget != null
+                                        else -> true
+                                    }
+                                    HomeOrbitAction(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .alpha(if (enabled) 1f else 0.45f),
+                                        icon = def.icon,
+                                        label = context.getString(def.labelRes),
+                                        accent = accents[index % accents.size],
+                                        onClick = {
+                                            if (!enabled) {
+                                                Toast.makeText(
+                                                    context,
+                                                    context.getString(R.string.home_resume_empty),
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                                return@HomeOrbitAction
+                                            }
+                                            when (actionId) {
+                                                HomeOrbitActionId.SPACES -> onNavigateToContainers()
+                                                HomeOrbitActionId.LIVE -> onNavigateToControlPanel()
+                                                HomeOrbitActionId.IMAGES -> onNavigateToRootfsRepo()
+                                                HomeOrbitActionId.RESUME ->
+                                                    resumeTarget?.let(onNavigateToContainerDetails)
+                                                HomeOrbitActionId.SETTINGS -> onNavigateToSettings()
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                            if (resumeTarget != null) {
+                                Surface(
+                                    onClick = { onNavigateToContainerDetails(resumeTarget) },
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.PlayCircle,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            text = context.getString(R.string.home_resume_chip, resumeTarget),
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
                             }
                         }
 
@@ -744,6 +810,7 @@ private fun HomeTabContent(
                                     isRootAvailable = isRootAvailable,
                                     refreshTrigger = refreshTrigger,
                                     appUpdate = appUpdate,
+                                    onDismissAppUpdate = onDismissAppUpdate,
                                     onStatusClick = onStatusClick,
                                     compactMetrics = compactMetrics,
                                     animatedContainers = animatedContainers,
@@ -760,6 +827,10 @@ private fun HomeTabContent(
                                     homeLayout = homeLayout,
                                     compactMetrics = compactMetrics,
                                     adaptive = adaptive,
+                                    pinnedIds = pinnedRootfs,
+                                    onTogglePin = { id ->
+                                        pinnedRootfs = prefsManager.togglePinnedRootfsPreset(id)
+                                    },
                                     onNavigateToRootfsRepo = onNavigateToRootfsRepo
                                 )
                                 HomeAppearanceBlock(
@@ -769,6 +840,8 @@ private fun HomeTabContent(
                                     onShowLook = { showLook = true },
                                     prefsManager = prefsManager,
                                     themeState = themeState,
+                                    orbitSlotsRaw = orbitSlotsRaw,
+                                    onOrbitSlotsChanged = { orbitSlotsRaw = it },
                                     onOpenThemeEditor = { showThemeEditor = true }
                                 )
                             }
@@ -780,6 +853,7 @@ private fun HomeTabContent(
                             isRootAvailable = isRootAvailable,
                             refreshTrigger = refreshTrigger,
                             appUpdate = appUpdate,
+                            onDismissAppUpdate = onDismissAppUpdate,
                             onStatusClick = onStatusClick,
                             compactMetrics = compactMetrics,
                             animatedContainers = animatedContainers,
@@ -791,6 +865,10 @@ private fun HomeTabContent(
                             homeLayout = homeLayout,
                             compactMetrics = compactMetrics,
                             adaptive = adaptive,
+                            pinnedIds = pinnedRootfs,
+                            onTogglePin = { id ->
+                                pinnedRootfs = prefsManager.togglePinnedRootfsPreset(id)
+                            },
                             onNavigateToRootfsRepo = onNavigateToRootfsRepo
                         )
                         HomeAppearanceBlock(
@@ -800,6 +878,8 @@ private fun HomeTabContent(
                             onShowLook = { showLook = true },
                             prefsManager = prefsManager,
                             themeState = themeState,
+                            orbitSlotsRaw = orbitSlotsRaw,
+                            onOrbitSlotsChanged = { orbitSlotsRaw = it },
                             onOpenThemeEditor = { showThemeEditor = true }
                         )
                     }
@@ -841,6 +921,7 @@ private fun HomeStatusAndMetricsBlock(
     isRootAvailable: Boolean,
     refreshTrigger: Int,
     appUpdate: AppUpdateInfo?,
+    onDismissAppUpdate: () -> Unit,
     onStatusClick: () -> Unit,
     compactMetrics: Boolean,
     animatedContainers: Int,
@@ -857,6 +938,7 @@ private fun HomeStatusAndMetricsBlock(
             isRootAvailable = isRootAvailable,
             refreshTrigger = refreshTrigger,
             appUpdate = appUpdate,
+            onDismissAppUpdate = onDismissAppUpdate,
             onClick = onStatusClick
         )
 
@@ -914,10 +996,17 @@ private fun HomeRootfsBlock(
     homeLayout: HomeLayout,
     compactMetrics: Boolean,
     adaptive: AdaptiveMetrics,
+    pinnedIds: Set<String>,
+    onTogglePin: (String) -> Unit,
     onNavigateToRootfsRepo: () -> Unit
 ) {
     if (homeLayout == HomeLayout.FOCUS) return
     val context = LocalContext.current
+    val orderedPresets = remember(pinnedIds) {
+        val pinned = CuratedRootfsRepos.presets.filter { it.id in pinnedIds }
+        val rest = CuratedRootfsRepos.presets.filter { it.id !in pinnedIds }
+        pinned + rest
+    }
     Column(
         verticalArrangement = Arrangement.spacedBy(if (compactMetrics) 8.dp else 12.dp)
     ) {
@@ -932,7 +1021,7 @@ private fun HomeRootfsBlock(
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = context.getString(R.string.home_rootfs_subtitle),
+                text = context.getString(R.string.home_rootfs_subtitle_pin),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 maxLines = if (compactMetrics) 1 else 2,
@@ -944,7 +1033,7 @@ private fun HomeRootfsBlock(
             (homeLayout == HomeLayout.DASHBOARD && adaptive.widthClass != WidthClass.Compact)
         if (useGrid) {
             val cols = if (adaptive.widthClass == WidthClass.Expanded) 3 else 2
-            CuratedRootfsRepos.presets.chunked(cols).forEach { row ->
+            orderedPresets.chunked(cols).forEach { row ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -954,7 +1043,9 @@ private fun HomeRootfsBlock(
                             name = repo.name,
                             description = repo.description,
                             category = repo.category,
+                            pinned = repo.id in pinnedIds,
                             onClick = onNavigateToRootfsRepo,
+                            onLongClick = { onTogglePin(repo.id) },
                             compact = compactMetrics || homeLayout == HomeLayout.GALLERY,
                             modifier = Modifier.weight(1f),
                             stretch = true
@@ -1004,12 +1095,14 @@ private fun HomeRootfsBlock(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                items(CuratedRootfsRepos.presets, key = { it.id }) { repo ->
+                items(orderedPresets, key = { it.id }) { repo ->
                     HomeRootfsRepoCard(
                         name = repo.name,
                         description = repo.description,
                         category = repo.category,
+                        pinned = repo.id in pinnedIds,
                         onClick = onNavigateToRootfsRepo,
+                        onLongClick = { onTogglePin(repo.id) },
                         compact = compactMetrics
                     )
                 }
@@ -1064,6 +1157,8 @@ private fun HomeAppearanceBlock(
     onShowLook: () -> Unit,
     prefsManager: PreferencesManager,
     themeState: ThemeState,
+    orbitSlotsRaw: String,
+    onOrbitSlotsChanged: (String) -> Unit,
     onOpenThemeEditor: () -> Unit
 ) {
     val context = LocalContext.current
@@ -1117,6 +1212,67 @@ private fun HomeAppearanceBlock(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
         )
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = context.getString(R.string.home_orbit_customize_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = context.getString(R.string.home_orbit_customize_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+            val slots = HomeOrbitActionId.parseSlots(orbitSlotsRaw)
+            slots.forEachIndexed { index, selectedId ->
+                Text(
+                    text = context.getString(R.string.home_orbit_slot_label, index + 1),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(HomeOrbitCatalog.all, key = { "${index}-${it.id}" }) { def ->
+                        val selected = def.id == selectedId
+                        Surface(
+                            onClick = {
+                                prefsManager.setHomeOrbitSlot(index, def.id)
+                                onOrbitSlotsChanged(prefsManager.homeOrbitSlots)
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (selected) {
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                            } else {
+                                MaterialTheme.colorScheme.surfaceContainerHigh
+                            },
+                            border = BorderStroke(
+                                1.dp,
+                                if (selected) {
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                                } else {
+                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                                }
+                            )
+                        ) {
+                            Text(
+                                text = context.getString(def.labelRes),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                                color = if (selected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1214,25 +1370,50 @@ private fun HomeAppearanceBlock(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HomeRootfsRepoCard(
     name: String,
     description: String,
     category: String,
+    pinned: Boolean = false,
     onClick: () -> Unit,
+    onLongClick: () -> Unit = {},
     compact: Boolean = false,
     modifier: Modifier = Modifier,
     stretch: Boolean = false
 ) {
+    val context = LocalContext.current
     val cardHeight = if (compact) 108.dp else 132.dp
     Surface(
-        onClick = onClick,
         modifier = modifier
             .then(if (stretch) Modifier.fillMaxWidth() else Modifier.width(if (compact) 168.dp else 188.dp))
-            .height(cardHeight),
+            .height(cardHeight)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = {
+                    onLongClick()
+                    Toast.makeText(
+                        context,
+                        if (!pinned) {
+                            context.getString(R.string.home_rootfs_pinned_toast)
+                        } else {
+                            context.getString(R.string.home_rootfs_unpinned_toast)
+                        },
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            ),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+        border = BorderStroke(
+            1.dp,
+            if (pinned) {
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+            } else {
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+            }
+        )
     ) {
         Column(
             modifier = Modifier
@@ -1240,14 +1421,29 @@ private fun HomeRootfsRepoCard(
                 .padding(if (compact) 12.dp else 16.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = category,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = category,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                if (pinned) {
+                    Text(
+                        text = context.getString(R.string.home_rootfs_pinned_chip),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = name,

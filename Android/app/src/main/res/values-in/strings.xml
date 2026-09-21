@@ -65,6 +65,17 @@
     <string name="home_orbit_spaces">Spaces</string>
     <string name="home_orbit_live">Live</string>
     <string name="home_orbit_images">Images</string>
+    <string name="home_orbit_resume">Lanjut</string>
+    <string name="home_orbit_settings">Pengaturan</string>
+    <string name="home_orbit_customize_title">Shortcut orbit</string>
+    <string name="home_orbit_customize_subtitle">Pilih tiga lompatan cepat di Home</string>
+    <string name="home_orbit_slot_label">Slot %1$d</string>
+    <string name="home_resume_chip">Lanjut %1$s</string>
+    <string name="home_resume_empty">Buka container dulu untuk melanjutkannya</string>
+    <string name="home_rootfs_subtitle_pin">Tekan lama katalog untuk pin di depan</string>
+    <string name="home_rootfs_pinned_chip">Pinned</string>
+    <string name="home_rootfs_pinned_toast">Di-pin ke Home</string>
+    <string name="home_rootfs_unpinned_toast">Pin dilepas dari Home</string>
     <string name="home_layout_tagline">Spaces · live · katalog</string>
     <string name="home_live_pulse">Live pulse</string>
     <string name="home_live_idle">Idle</string>
@@ -591,4 +602,19 @@
     <string name="storage_location_needs_space">Diperlukan setidaknya %1$d GB ruang bebas di sini.</string>
     <string name="allow">Izinkan</string>
     <string name="not_now">Tidak sekarang</string>
+    <string name="app_update_message">AetherBox %1$s siap.</string>
+    <string name="app_update_download">Unduh</string>
+    <string name="app_update_later">Nanti</string>
+    <string name="app_update_notes">Catatan</string>
+    <string name="app_update_downloading_title">Mengunduh AetherBox</string>
+    <string name="app_update_downloading_desc">Mengambil %1$s…</string>
+    <string name="app_update_downloading_progress">Mengunduh… %1$d%%</string>
+    <string name="app_update_download_failed">Gagal mengunduh APK. Buka halaman rilis saja.</string>
+    <string name="app_update_channel_name">Pembaruan aplikasi</string>
+    <string name="app_update_channel_description">Pemberitahuan saat APK AetherBox baru ada di GitHub</string>
+    <string name="app_update_notification_title">Pembaruan AetherBox tersedia</string>
+    <string name="app_update_notification_text">Versi %1$s siap diinstal</string>
+    <string name="updates_section">Pembaruan</string>
+    <string name="check_app_updates">Cek pembaruan aplikasi</string>
+    <string name="check_app_updates_description">Cari rilis baru di GitHub saat aplikasi dibuka</string>
 </resources>
