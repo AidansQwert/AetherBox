@@ -502,6 +502,12 @@
     <string name="property_cpu_time">CPU Time (ns)</string>
     <string name="unit_detail_load_error_title">Couldn\'t load unit details</string>
     <string name="unit_detail_load_error_message">The unit may no longer exist, or the container may be unreachable.</string>
+    <string name="fetching_logs">Fetching logs...</string>
+    <string name="journal_load_error_title">Couldn\'t load logs</string>
+    <string name="journal_load_error_message">The unit may have no journal, or the container may be unreachable.</string>
+    <string name="journal_line_count_custom">Custom…</string>
+    <string name="journal_line_count_title">Line count</string>
+    <string name="journal_line_count_label">Lines</string>
     <string name="properties_section">Properties</string>
     <string name="dependencies_section">Dependencies</string>
     <string name="systemctl_status_section">systemctl status</string>

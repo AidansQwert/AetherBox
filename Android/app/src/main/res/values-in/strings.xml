@@ -270,6 +270,12 @@
     <string name="init_system_not_available">Systemd/OpenWrt/OpenRC Tidak Tersedia</string>
     <string name="init_system_not_available_desc">Container ini tidak memiliki systemd, OpenWrt/procd, atau OpenRC yang terpasang</string>
     <string name="fetching_services">Sedang memuat layanan...</string>
+    <string name="fetching_logs">Mengambil log...</string>
+    <string name="journal_load_error_title">Gagal memuat log</string>
+    <string name="journal_load_error_message">Unit mungkin tidak punya journal, atau container tidak bisa dijangkau.</string>
+    <string name="journal_line_count_custom">Kustom…</string>
+    <string name="journal_line_count_title">Jumlah baris</string>
+    <string name="journal_line_count_label">Baris</string>
     <string name="search_services">Mencari layanan...</string>
     <string name="enabled_legend">Aktif</string>
     <string name="disabled_legend">Tidak aktif</string>

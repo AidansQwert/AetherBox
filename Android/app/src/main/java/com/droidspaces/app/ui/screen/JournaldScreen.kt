@@ -1,5 +1,6 @@
 package com.droidspaces.app.ui.screen
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,21 +18,31 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.droidspaces.app.R
+import com.droidspaces.app.ui.component.DialogFooterRow
+import com.droidspaces.app.ui.component.DsDialog
+import com.droidspaces.app.ui.component.DsMenuTheme
+import com.droidspaces.app.ui.component.DsTextFieldDefaults
+import com.droidspaces.app.ui.component.ErrorState
+import com.droidspaces.app.ui.component.dsMenuBorder
 import com.droidspaces.app.ui.theme.JetBrainsMono
 import com.droidspaces.app.ui.util.FullScreenLoading
 import com.droidspaces.app.ui.viewmodel.JournaldState
 import com.droidspaces.app.ui.viewmodel.JournaldViewModel
 
+private val LINE_COUNT_OPTIONS = listOf(50, 100, 500, 1000)
+
+/**
+ * Tail of a unit's journal, `journalctl -u <unit> -n <count>`. Reached from the
+ * "View logs" overflow-menu item on [SystemdScreen] or the log icon on [UnitDetailScreen].
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JournaldScreen(
@@ -42,17 +53,9 @@ fun JournaldScreen(
 ) {
     val context = LocalContext.current
     val state = viewModel.state
-    var selectedLineCount by remember { mutableStateOf("100") }
-    var customLineCount by remember { mutableStateOf("") }
 
-    val lineCount = if (selectedLineCount == "custom") {
-        customLineCount.toIntOrNull() ?: 100
-    } else {
-        selectedLineCount.toIntOrNull() ?: 100
-    }
-
-    LaunchedEffect(containerName, unitName, lineCount) {
-        viewModel.loadLogs(containerName, unitName, lineCount)
+    LaunchedEffect(containerName, unitName, viewModel.lineCount) {
+        viewModel.loadLogs(containerName, unitName)
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -61,6 +64,8 @@ fun JournaldScreen(
                 TopAppBar(
                     title = {
                         Column {
+                            // Title carries a unit name, so it stays one step below the
+                            // titleLarge every other screen title uses.
                             Text(
                                 context.getString(R.string.logs_title, unitName),
                                 style = MaterialTheme.typography.titleMedium,
@@ -70,7 +75,7 @@ fun JournaldScreen(
                             Text(
                                 containerName,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                             )
                         }
                     },
@@ -81,14 +86,12 @@ fun JournaldScreen(
                     },
                     actions = {
                         LineCountSelector(
-                            selected = selectedLineCount,
-                            onSelected = { selectedLineCount = it },
-                            customValue = customLineCount,
-                            onCustomValueChange = { customLineCount = it },
+                            selected = viewModel.lineCount,
+                            onSelected = { viewModel.lineCount = it },
                             enabled = state !is JournaldState.Loading
                         )
                         IconButton(
-                            onClick = { viewModel.loadLogs(containerName, unitName, lineCount) },
+                            onClick = { viewModel.loadLogs(containerName, unitName) },
                             enabled = state !is JournaldState.Loading
                         ) {
                             Icon(Icons.Default.Refresh, context.getString(R.string.refresh))
@@ -101,8 +104,12 @@ fun JournaldScreen(
         ) { padding ->
             Box(modifier = Modifier.padding(padding).fillMaxSize()) {
                 when (val s = state) {
-                    is JournaldState.Loading -> FullScreenLoading(message = context.getString(R.string.fetching_services))
-                    is JournaldState.Error -> JournaldError(onRetry = { viewModel.loadLogs(containerName, unitName, lineCount) })
+                    is JournaldState.Loading -> FullScreenLoading(message = context.getString(R.string.fetching_logs))
+                    is JournaldState.Error -> ErrorState(
+                        title = context.getString(R.string.journal_load_error_title),
+                        description = context.getString(R.string.journal_load_error_message),
+                        onRetry = { viewModel.loadLogs(containerName, unitName) }
+                    )
                     is JournaldState.Ready -> JournaldContent(s.logs)
                 }
             }
@@ -114,27 +121,35 @@ fun JournaldScreen(
 private fun JournaldContent(logs: List<String>) {
     Surface(
         modifier = Modifier.fillMaxSize().padding(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        tonalElevation = 0.dp
     ) {
         // Every reload passes through Loading, so this composable is fresh per log
         // set. Start at the tail instead of scrolling there after the first frame.
         val listState = rememberLazyListState(initialFirstVisibleItemIndex = logs.lastIndex.coerceAtLeast(0))
 
+        // Same roles TerminalConsole gives its ERROR and WARN lines, so a red line
+        // means the same thing on both surfaces.
+        val errorColor = MaterialTheme.colorScheme.error
+        val warnColor = MaterialTheme.colorScheme.tertiary
+        val textColor = MaterialTheme.colorScheme.onSurface
+
         SelectionContainer {
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(12.dp)
+                contentPadding = PaddingValues(16.dp)
             ) {
                 items(logs) { line ->
                     Text(
                         text = line,
                         style = MaterialTheme.typography.bodySmall.copy(fontFamily = JetBrainsMono),
                         color = when {
-                            line.contains("error", ignoreCase = true) || line.contains("fail", ignoreCase = true) -> Color(0xFFEF5350)
-                            line.contains("warn", ignoreCase = true) -> Color(0xFFFFCA28)
-                            else -> MaterialTheme.colorScheme.onSurface
+                            line.contains("error", ignoreCase = true) || line.contains("fail", ignoreCase = true) -> errorColor
+                            line.contains("warn", ignoreCase = true) -> warnColor
+                            else -> textColor
                         }
                     )
                 }
@@ -144,113 +159,86 @@ private fun JournaldContent(logs: List<String>) {
 }
 
 @Composable
-private fun JournaldError(onRetry: () -> Unit) {
-    val context = LocalContext.current
-    Column(
-        modifier = Modifier.fillMaxSize().padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            context.getString(R.string.unit_detail_load_error_title),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            context.getString(R.string.unit_detail_load_error_message),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(16.dp))
-        FilledTonalButton(onClick = onRetry) {
-            Text(context.getString(R.string.repo_retry))
-        }
-    }
-}
-
-@Composable
 private fun LineCountSelector(
-    selected: String,
-    onSelected: (String) -> Unit,
-    customValue: String,
-    onCustomValueChange: (String) -> Unit,
+    selected: Int,
+    onSelected: (Int) -> Unit,
     enabled: Boolean
 ) {
+    val context = LocalContext.current
     var expanded by remember { mutableStateOf(false) }
     var showCustomDialog by remember { mutableStateOf(false) }
-    val options = listOf("50", "100", "500", "1000")
 
     Box {
-        TextButton(
-            onClick = { expanded = true },
-            enabled = enabled,
-            shape = RoundedCornerShape(12.dp)
-        ) {
+        // A text-only trigger between the app bar's IconButtons. A bordered Surface
+        // here would read heavier than its neighbours.
+        TextButton(onClick = { expanded = true }, enabled = enabled) {
             Text(
-                text = if (selected == "custom") customValue.ifEmpty { "..." } else selected,
+                text = selected.toString(),
                 style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.SemiBold
             )
         }
 
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            options.forEach { option ->
+        DsMenuTheme {
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.dsMenuBorder()
+            ) {
+                LINE_COUNT_OPTIONS.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option.toString()) },
+                        onClick = {
+                            onSelected(option)
+                            expanded = false
+                        }
+                    )
+                }
                 DropdownMenuItem(
-                    text = { Text(option) },
+                    text = { Text(context.getString(R.string.journal_line_count_custom)) },
                     onClick = {
-                        onSelected(option)
                         expanded = false
+                        showCustomDialog = true
                     }
                 )
             }
-            DropdownMenuItem(
-                text = { Text("Custom...") },
-                onClick = {
-                    expanded = false
-                    showCustomDialog = true
-                }
-            )
         }
     }
 
     if (showCustomDialog) {
-        var tempValue by remember { mutableStateOf(customValue) }
-        AlertDialog(
-            onDismissRequest = { showCustomDialog = false },
-            title = { Text("Custom Line Count") },
-            text = {
-                OutlinedTextField(
-                    value = tempValue,
-                    onValueChange = { tempValue = it.filter(Char::isDigit) },
-                    label = { Text("Lines") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (tempValue.isNotEmpty()) {
-                            onCustomValueChange(tempValue)
-                            onSelected("custom")
-                        }
+        var value by remember { mutableStateOf(selected.toString()) }
+        val parsed = value.toIntOrNull()
+        DsDialog(
+            onDismiss = { showCustomDialog = false },
+            modifier = Modifier.imePadding(),
+            footer = {
+                DialogFooterRow(
+                    dismissLabel = context.getString(R.string.cancel),
+                    confirmLabel = context.getString(R.string.ok),
+                    onDismiss = { showCustomDialog = false },
+                    onConfirm = {
+                        onSelected(parsed!!)
                         showCustomDialog = false
-                    }
-                ) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCustomDialog = false }) {
-                    Text("Cancel")
-                }
+                    },
+                    confirmEnabled = parsed != null && parsed > 0
+                )
             }
-        )
+        ) {
+            Text(
+                context.getString(R.string.journal_line_count_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            OutlinedTextField(
+                value = value,
+                onValueChange = { value = it.filter(Char::isDigit) },
+                label = { Text(context.getString(R.string.journal_line_count_label)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                shape = RoundedCornerShape(16.dp),
+                colors = DsTextFieldDefaults.surfaceColors(),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 }
