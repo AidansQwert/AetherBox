@@ -10,7 +10,6 @@ English | [简体中文](./Documentation/zh-CN/README.md)
 [![Android support](https://img.shields.io/badge/-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)](#a-android-devices)
 [![Linux desktop](https://img.shields.io/badge/-Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)](#b-linux-desktop)
 [![Translation status](https://img.shields.io/weblate/progress/droidspaces?server=https://hosted.weblate.org&style=for-the-badge&label=Translated&logo=weblate)](https://hosted.weblate.org/engage/droidspaces/)
-[![Official Website](https://crystalsharps.dpdns.org/) 
 
 ---
 
