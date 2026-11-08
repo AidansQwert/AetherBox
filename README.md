@@ -14,7 +14,7 @@ English | [简体中文](./Documentation/zh-CN/README.md)
 
 ---
 
-# AetherBox ( Discontinued ) 
+# AetherBox (Discontinued) 
 
 **AetherBox** is a community fork of [Droidspaces](https://github.com/ravindu644/Droidspaces-OSS) — a lightweight, portable Linux containerization tool that lets you run full Linux environments on top of Android, Linux, or even in **minimal environments like Android recovery/Ramdisks**, with complete init system support including **systemd**, **OpenRC**, and other init systems (runit, s6, etc.).
 
